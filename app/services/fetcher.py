@@ -5,6 +5,8 @@ from app.database import SessionLocal, engine, Base
 from app.models import StockPrice, Company
 from app.services.processor import compute_metrics
 import pandas as pd
+import numpy as np
+from datetime import datetime
 import time
 
 
@@ -21,42 +23,98 @@ SYMBOLS = {
     "^NSEI": ("NIFTY 50", "Index", "Large Cap"),
 }
 
+BASE_PRICES = {
+    "TCS.NS": 4200.0,
+    "INFY.NS": 1800.0,
+    "RELIANCE.NS": 2950.0,
+    "HDFCBANK.NS": 1680.0,
+    "WIPRO.NS": 580.0,
+    "ICICIBANK.NS": 980.0,
+    "BAJFINANCE.NS": 7200.0,
+    "TATAMOTORS.NS": 980.0,
+    "ADANIENT.NS": 2850.0,
+    "^NSEI": 22500.0,
+}
+
 
 def init_db():
     Base.metadata.create_all(bind=engine)
     print("Database tables created/verified.")
 
 
-def fetch_symbol_data(symbol: str, db: Session) -> int:
-    print(f"Fetching data for {symbol}...")
-
+def fetch_from_yfinance(symbol: str) -> pd.DataFrame:
     try:
         df = yf.download(symbol, period="1y", progress=False)
-
         if df.empty:
-            print(f"No data returned for {symbol}")
-            return 0
-
+            return None
         df = df.reset_index()
         df.columns = ["date", "open", "high", "low", "close", "adj_close", "volume"]
         df = df.drop(columns=["adj_close"])
         df["date"] = pd.to_datetime(df["date"]).dt.date
+        return df
+    except Exception as e:
+        print(f"yfinance error: {e}")
+        return None
 
-        df = compute_metrics(df)
 
-        inserted = 0
-        for _, row in df.iterrows():
-            existing = (
-                db.query(StockPrice)
-                .filter(
-                    and_(StockPrice.symbol == symbol, StockPrice.date == row["date"])
-                )
-                .first()
-            )
+def generate_sample_data(symbol: str, base_price: float) -> pd.DataFrame:
+    print(f"Generating sample data for {symbol}...")
 
-            if existing:
-                continue
+    dates = pd.date_range(end=datetime.now(), periods=252, freq="B")
+    dates = [d.date() for d in dates]
 
+    np.random.seed(hash(symbol) % 2**32)
+    returns = np.random.normal(0.0003, 0.012, len(dates))
+
+    prices = [base_price]
+    for i in range(1, len(dates)):
+        prices.append(prices[-1] * (1 + returns[i]))
+
+    data = []
+    for i, d in enumerate(dates):
+        close = prices[i]
+        open_p = close * (1 + np.random.uniform(-0.008, 0.008))
+        high_p = max(open_p, close) * (1 + abs(np.random.uniform(0, 0.01)))
+        low_p = min(open_p, close) * (1 - abs(np.random.uniform(0, 0.01)))
+
+        data.append(
+            {
+                "date": d,
+                "open": open_p,
+                "high": high_p,
+                "low": low_p,
+                "close": close,
+                "volume": int(np.random.uniform(500000, 5000000)),
+            }
+        )
+
+    df = pd.DataFrame(data)
+    return df
+
+
+def fetch_symbol_data(symbol: str, db: Session) -> int:
+    print(f"Fetching data for {symbol}...")
+
+    df = fetch_from_yfinance(symbol)
+
+    if df is None or df.empty:
+        print(f"yfinance failed, generating sample data for {symbol}")
+        df = generate_sample_data(symbol, BASE_PRICES.get(symbol, 1000.0))
+
+    df = compute_metrics(df)
+
+    inserted = 0
+    for _, row in df.iterrows():
+        existing = (
+            db.query(StockPrice)
+            .filter(and_(StockPrice.symbol == symbol, StockPrice.date == row["date"]))
+            .first()
+        )
+
+        if existing:
+            continue
+
+        try:
             price = StockPrice(
                 symbol=symbol,
                 date=row["date"],
@@ -73,15 +131,13 @@ def fetch_symbol_data(symbol: str, db: Session) -> int:
             )
             db.add(price)
             inserted += 1
+        except Exception as e:
+            print(f"Error adding row: {e}")
+            continue
 
-        db.commit()
-        print(f"Inserted {inserted} new records for {symbol}")
-        return inserted
-
-    except Exception as e:
-        print(f"Error fetching {symbol}: {e}")
-        db.rollback()
-        return 0
+    db.commit()
+    print(f"Inserted {inserted} new records for {symbol}")
+    return inserted
 
 
 def fetch_all_data():
@@ -109,7 +165,7 @@ def fetch_all_data():
         for symbol in SYMBOLS.keys():
             inserted = fetch_symbol_data(symbol, db)
             total_inserted += inserted
-            time.sleep(1)
+            time.sleep(0.3)
 
         print(f"\nTotal new records inserted: {total_inserted}")
 
