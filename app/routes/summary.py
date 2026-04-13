@@ -29,9 +29,8 @@ def get_summary(symbol: str, db: Session = Depends(get_db)):
     last_30 = prices[-30:] if len(prices) >= 30 else prices
 
     avg_close = sum(p.close for p in last_30) / len(last_30)
-    avg_volatility = sum(
-        p.volatility_score for p in last_30 if p.volatility_score
-    ) / len([p for p in last_30 if p.volatility_score])
+    vol_scores = [p.volatility_score for p in last_30 if p.volatility_score]
+    avg_volatility = sum(vol_scores) / len(vol_scores) if vol_scores else 0.0
 
     week52_high = max(p.week52_high for p in prices if p.week52_high)
     week52_low = min(p.week52_low for p in prices if p.week52_low)

@@ -1,176 +1,1193 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockIQ - Indian Stock Market Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --white: #ffffff;
-            --bg-primary: #f8fafc;
-            --bg-secondary: #f1f5f9;
-            --accent-primary: #4f46e5;
-            --accent-success: #10b981;
-            --accent-danger: #ef4444;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --text-muted: #94a3b8;
-            --border: #e2e8f0;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%); color: var(--text-primary); min-height: 100vh; }
-        .app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-        .sidebar { background: var(--white); border-right: 1px solid var(--border); padding: 24px 20px; overflow-y: auto; }
-        .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
-        .logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-        .logo-text { font-size: 22px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 14px; }
-        .stock-list { display: flex; flex-direction: column; gap: 6px; }
-        .stock-card { background: var(--bg-secondary); border: 1px solid transparent; border-radius: 10px; padding: 14px; cursor: pointer; transition: all 0.2s; }
-        .stock-card:hover { background: var(--white); border-color: var(--border); transform: translateY(-1px); }
-        .stock-card.active { background: var(--white); border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
-        .stock-symbol { font-size: 14px; font-weight: 700; }
-        .stock-name { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
-        .stock-price { font-size: 17px; font-weight: 700; }
-        .stock-change { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
-        .stock-change.up { background: #d1fae5; color: #059669; }
-        .stock-change.down { background: #fee2e2; color: #dc2626; }
-        .main { padding: 24px 28px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .header h1 { font-size: 24px; font-weight: 700; }
-        .header p { font-size: 13px; color: var(--text-muted); }
-        .live-badge { display: flex; align-items: center; gap: 8px; background: #d1fae5; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; color: #059669; }
-        .live-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
-        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        .stat-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-        .stat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-        .stat-icon.high{background:#d1fae5;color:#059669;}
-        .stat-icon.low{background:#fee2e2;color:#dc2626;}
-        .stat-icon.avg{background:#e0e7ff;color:#4f46e5;}
-        .stat-icon.vol{background:#fef3c7;color:#d97706;}
-        .stat-value { font-size: 24px; font-weight: 700; }
-        .chart-section { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .chart-title { font-size: 18px; font-weight: 700; }
-        .chart-current { font-size: 22px; font-weight: 700; color: #4f46e5; }
-        .time-filters { display: flex; gap: 6px; background: var(--bg-secondary); padding: 4px; border-radius: 8px; }
-        .time-btn { background: transparent; border: none; color: var(--text-muted); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
-        .time-btn:hover{color:var(--text-primary);}
-        .time-btn.active{background:var(--white);color:#4f46e5;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
-        .chart-container { height: 300px; position: relative; }
-        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        .panel { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .panel-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
-        .compare-controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .compare-btn { background: linear-gradient(135deg, #4f46e5, #6366f1); border: none; color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
-        .compare-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(79,70,229,0.3);}
-        .compare-result-box{display:none;grid-template-columns:1fr 1fr;gap:16px;}
-        .compare-result-box.show{display:grid;}
-        .compare-stock{background:var(--bg-secondary);border-radius:10px;padding:16px;}
-        .compare-stock-header{display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);}
-        .compare-stock-name{font-size:15px;font-weight:700;}
-        .trophy{color:#f59e0b;}
-        .compare-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-        .compare-stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;}
-        .compare-stat-value{font-size:14px;font-weight:600;}
-        .correlation-box{grid-column:1/-1;background:var(--bg-secondary);border-radius:8px;padding:14px;text-align:center;margin-top:12px;}
-        .correlation-value{font-size:16px;font-weight:700;color:#4f46e5;}
-        .perf-list{display:flex;flex-direction:column;gap:8px;}
-        .perf-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg-secondary);border-radius:8px;}
-        .rank-badge{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
-        .rank-badge.gainers{background:#d1fae5;color:#059669;}
-        .perf-info{flex:1;}
-        .perf-symbol{font-size:13px;font-weight:700;}
-        .perf-name{font-size:11px;color:var(--text-muted);}
-        .perf-change{font-size:13px;font-weight:700;}
-        .skeleton{background:linear-gradient(90deg,var(--bg-secondary) 25%,var(--border) 50%,var(--bg-secondary) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
-        @keyframes shimmer{0%{background-position:200%0;}100%{background-position:-200%0;}}
-        .skeleton-card{height:85px;}
-        .skeleton-stat{height:100px;}
-        .skeleton-chart{height:300px;}
-        .skeleton-list{height:52px;}
-        .toast{position:fixed;bottom:24px;right:24px;background:#ef4444;color:white;padding:14px 24px;border-radius:8px;font-size:14px;opacity:0;transform:translateY(20px);transition:all 0.3s;z-index:1000;}
-        .toast.show{opacity:1;transform:translateY(0);}
-        .hidden{display:none!important;}
-        @media (max-width:1200px){.stats-row{grid-template-columns:repeat(2,1fr);}.bottom-grid{grid-template-columns:1fr;}}
-        @media (max-width:900px){.app{grid-template-columns:1fr;}.sidebar{display:none;}}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockIQ Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f1f5f9;
+  --bg-surface-3: #e8eef5;
+  --accent-primary: #2563eb;
+  --accent-primary-light: #eff6ff;
+  --accent-primary-dark: #1d4ed8;
+  --accent-green: #059669;
+  --accent-green-light: #ecfdf5;
+  --accent-red: #dc2626;
+  --accent-red-light: #fef2f2;
+  --accent-yellow: #d97706;
+  --accent-yellow-light: #fffbeb;
+  --accent-purple: #7c3aed;
+  --accent-purple-light: #f5f3ff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-placeholder: #cbd5e1;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-primary); }
+</style>
 </head>
+<style>
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 99px; }
+
+/* Skeleton */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8eef5 50%, #f1f5f9 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+  color: transparent !important;
+  pointer-events: none;
+}
+.skeleton * { visibility: hidden; }
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes chartReveal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Layout */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* HEADER */
+.header {
+  height: 64px;
+  min-height: 64px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.header-brand-text { display: flex; align-items: baseline; gap: 4px; }
+.header-brand-name { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.header-brand-sub { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
+.header-search {
+  flex: 1;
+  max-width: 380px;
+  margin: 0 auto;
+  position: relative;
+}
+.header-search input {
+  width: 100%;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 9px 16px 9px 38px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.header-search input::placeholder { color: var(--text-placeholder); }
+.header-search input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.header-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.header-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; margin-left: auto; }
+.market-status { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--accent-green); }
+.market-dot {
+  width: 8px; height: 8px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+.avatar {
+  width: 34px; height: 34px;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  border: 1.5px solid var(--border);
+}
+
+/* BODY */
+.body-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 18px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.count-badge {
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+}
+.sidebar-list { flex: 1; overflow-y: auto; }
+.company-card {
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 150ms ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.company-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--accent-primary);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.company-card:hover { background: var(--bg-surface-2); }
+.company-card.active { background: var(--accent-primary-light); }
+.company-card.active::before { opacity: 1; }
+.company-card-top { display: flex; align-items: center; justify-content: space-between; }
+.company-symbol { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.company-card.active .company-symbol { color: var(--accent-primary); }
+.return-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+.return-badge.up { background: var(--accent-green-light); color: var(--accent-green); }
+.return-badge.down { background: var(--accent-red-light); color: var(--accent-red); }
+.company-card-bottom { display: flex; align-items: center; justify-content: space-between; }
+.company-name { font-size: 12px; color: var(--text-secondary); }
+.company-price { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* TOOLBAR */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.toolbar-left { display: flex; align-items: center; gap: 10px; }
+.toolbar-company-name { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.symbol-pill {
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+}
+.time-filters { display: flex; gap: 6px; }
+.time-btn {
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.time-btn:hover { background: var(--bg-surface-3); color: var(--text-primary); }
+.time-btn.active {
+  background: var(--accent-primary);
+  color: #fff;
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+}
+
+/* CHART CARD */
+.chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+  animation: chartReveal 0.4s ease both;
+}
+.chart-wrapper { height: 320px; position: relative; }
+.chart-skeleton { height: 320px; border-radius: var(--radius-md); }
+
+/* METRIC CARDS */
+.metric-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.metric-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  border-top: 3px solid transparent;
+  cursor: default;
+}
+.metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.metric-card:nth-child(1) { border-top-color: var(--accent-green); animation: fadeUp 0.4s ease 0.1s both; }
+.metric-card:nth-child(2) { border-top-color: var(--accent-red); animation: fadeUp 0.4s ease 0.2s both; }
+.metric-card:nth-child(3) { border-top-color: var(--accent-primary); animation: fadeUp 0.4s ease 0.3s both; }
+.metric-card:nth-child(4) { border-top-color: var(--accent-yellow); animation: fadeUp 0.4s ease 0.4s both; }
+.metric-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.metric-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.metric-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+.metric-value { font-size: 26px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; min-height: 36px; }
+.metric-desc { font-size: 12px; color: var(--text-secondary); }
+.metric-value.skeleton { height: 36px; width: 80%; border-radius: 6px; }
+</style>
+<style>
+/* COMPARE PANEL */
+.compare-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  animation: fadeUp 0.4s ease 0.5s both;
+}
+.compare-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.compare-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.beta-pill {
+  background: var(--accent-purple-light);
+  color: var(--accent-purple);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.compare-inputs { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.compare-select {
+  flex: 1;
+  min-width: 160px;
+  padding: 10px 36px 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 200ms ease;
+}
+.compare-select:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.compare-btn-action {
+  background: var(--accent-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 150ms ease, box-shadow 150ms ease;
+}
+.compare-btn-action:hover { background: var(--accent-primary-dark); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+.compare-results { margin-top: 20px; display: none; }
+.compare-results.show { display: block; }
+.compare-vs-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: stretch; }
+.vs-divider {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--text-muted);
+  padding: 0 4px;
+}
+.compare-stock-card {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.compare-stock-card.winner { border-top: 3px solid var(--accent-yellow); }
+.winner-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 16px; line-height: 1;
+}
+.compare-stock-symbol { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.compare-stock-name { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+.compare-return {
+  font-size: 28px; font-weight: 700; margin-bottom: 14px;
+}
+.compare-return.up { color: var(--accent-green); }
+.compare-return.down { color: var(--accent-red); }
+.compare-stats-list { display: flex; flex-direction: column; gap: 6px; }
+.compare-stat-row { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.compare-stat-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.compare-stat-label { color: var(--text-muted); }
+.compare-stat-val { color: var(--text-primary); font-weight: 500; margin-left: auto; }
+.correlation-row {
+  margin-top: 16px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.correlation-label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+.correlation-value { font-size: 15px; font-weight: 700; color: var(--accent-primary); }
+.correlation-desc { font-size: 12px; color: var(--text-muted); }
+.correlation-bar-wrap { flex: 1; height: 6px; background: var(--bg-surface-3); border-radius: 99px; overflow: hidden; }
+.correlation-bar { height: 100%; background: var(--accent-primary); border-radius: 99px; transition: width 0.6s ease; }
+
+/* GAINERS / LOSERS */
+.gl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; animation: fadeUp 0.4s ease 0.6s both; }
+.gl-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.gl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.gl-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.today-pill {
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+}
+.gl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.gl-item:last-child { border-bottom: none; }
+.gl-rank { font-size: 12px; color: var(--text-muted); width: 16px; text-align: center; flex-shrink: 0; }
+.gl-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  flex-shrink: 0;
+}
+.gl-info { flex: 1; min-width: 0; }
+.gl-symbol { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.gl-name { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gl-return { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.gl-return.up { color: var(--accent-green); }
+.gl-return.down { color: var(--accent-red); }
+.gl-skeleton { height: 52px; border-radius: var(--radius-sm); margin-bottom: 8px; }
+
+/* TOAST */
+.toast-container {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  width: 320px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-left: 4px solid var(--accent-red);
+  animation: slideInRight 0.3s ease both;
+  pointer-events: all;
+}
+.toast-icon { flex-shrink: 0; color: var(--accent-red); margin-top: 1px; }
+.toast-msg { flex: 1; font-size: 13px; color: var(--text-primary); line-height: 1.5; }
+.toast-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 16px; line-height: 1;
+  padding: 0; flex-shrink: 0;
+  transition: color 150ms ease;
+}
+.toast-close:hover { color: var(--text-primary); }
+
+/* Responsive */
+@media (max-width: 1280px) {
+  .metric-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 960px) {
+  .sidebar { display: none; }
+  .gl-row { grid-template-columns: 1fr; }
+}
+</style>
+
 <body>
-    <div class="app">
-        <aside class="sidebar">
-            <div class="logo">
-                <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-                <span class="logo-text">StockIQ</span>
-            </div>
-            <div class="sidebar-title">NSE Stocks</div>
-            <div class="stock-list" id="stockList">
-                <div class="skeleton skeleton-card"></div>
-                <div class="skeleton skeleton-card"></div>
-                <div class="skeleton skeleton-card"></div>
-            </div>
-        </aside>
-        <main class="main">
-            <div class="header">
-                <div><h1>Stock Dashboard</h1><p id="currentDate"></p></div>
-                <div class="live-badge"><span class="live-dot"></span>Live Data</div>
-            </div>
-            <div class="stats-row">
-                <div class="stat-card"><div class="stat-header"><span class="stat-label">52W High</span><span class="stat-icon high">↑</span></div><div class="stat-value skeleton skeleton-stat" id="statHigh">--</div></div>
-                <div class="stat-card"><div class="stat-header"><span class="stat-label">52W Low</span><span class="stat-icon low">↓</span></div><div class="stat-value skeleton skeleton-stat" id="statLow">--</div></div>
-                <div class="stat-card"><div class="stat-header"><span class="stat-label">Avg Close</span><span class="stat-icon avg">~</span></div><div class="stat-value skeleton skeleton-stat" id="statAvg">--</div></div>
-                <div class="stat-card"><div class="stat-header"><span class="stat-label">Volatility</span><span class="stat-icon vol">⌀</span></div><div class="stat-value skeleton skeleton-stat" id="statVol">--</div></div>
-            </div>
-            <div class="chart-section">
-                <div class="chart-header">
-                    <div class="chart-title-group"><span class="chart-title" id="chartTitle">Select a stock</span><span class="chart-current" id="chartPrice"></span></div>
-                    <div class="time-filters"><button class="time-btn" data-days="7">1W</button><button class="time-btn active" data-days="30">1M</button><button class="time-btn" data-days="90">3M</button><button class="time-btn" data-days="180">6M</button><button class="time-btn" data-days="365">1Y</button></div>
-                </div>
-                <div class="chart-container" id="chartContainer"><div class="skeleton skeleton-chart"></div></div>
-            </div>
-            <div class="bottom-grid">
-                <div class="panel">
-                    <div class="panel-title">Compare Stocks</div>
-                    <div class="compare-controls">
-                        <button class="compare-btn" onclick="compareStocks('TCS.NS','INFY.NS')">TCS vs INFY</button>
-                        <button class="compare-btn" onclick="compareStocks('TCS.NS','RELIANCE.NS')">TCS vs RELIANCE</button>
-                        <button class="compare-btn" onclick="compareStocks('INFY.NS','RELIANCE.NS')">INFY vs RELIANCE</button>
-                    </div>
-                    <div class="compare-result-box" id="compareResults">
-                        <div class="compare-stock"><div class="compare-stock-header"><span class="compare-stock-name" id="stock1Name">--</span><svg class="trophy hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h8l-6.5 5 2.5 8L12 18l-7 4 2.5-8L1 9h8l3-7z"/></svg></div><div class="compare-stats-grid"><div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock1Return">--</div></div><div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock1Avg">--</div></div><div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock1Max">--</div></div><div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock1Vol">--</div></div></div></div>
-                        <div class="compare-stock"><div class="compare-stock-header"><span class="compare-stock-name" id="stock2Name">--</span><svg class="trophy hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h8l-6.5 5 2.5 8L12 18l-7 4 2.5-8L1 9h8l3-7z"/></svg></div><div class="compare-stats-grid"><div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock2Return">--</div></div><div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock2Avg">--</div></div><div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock2Max">--</div></div><div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock2Vol">--</div></div></div></div>
-                        <div class="correlation-box"><span class="correlation-label">Correlation: </span><span class="correlation-value" id="corrValue">--</span></div>
-                    </div>
-                </div>
-                <div class="panel"><div class="panel-title">Top Gainers</div><div class="perf-list" id="gainersList"><div class="skeleton skeleton-list"></div><div class="skeleton skeleton-list"></div><div class="skeleton skeleton-list"></div></div></div>
-            </div>
-        </main>
+<div class="app-layout">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="8" fill="var(--accent-primary)"/>
+        <rect x="5" y="18" width="3" height="6" rx="1" fill="white" opacity="0.6"/>
+        <rect x="5" y="14" width="3" height="4" rx="1" fill="white"/>
+        <rect x="10" y="12" width="3" height="10" rx="1" fill="white" opacity="0.6"/>
+        <rect x="10" y="8" width="3" height="4" rx="1" fill="white"/>
+        <rect x="15" y="15" width="3" height="7" rx="1" fill="white" opacity="0.6"/>
+        <rect x="15" y="10" width="3" height="5" rx="1" fill="white"/>
+        <rect x="20" y="10" width="3" height="12" rx="1" fill="white" opacity="0.6"/>
+        <rect x="20" y="6" width="3" height="4" rx="1" fill="white"/>
+      </svg>
+      <div class="header-brand-text">
+        <span class="header-brand-name">StockIQ</span>
+        <span class="header-brand-sub">Dashboard</span>
+      </div>
     </div>
-    <div class="toast" id="toast"></div>
-    <script>
-        var companies=[], selectedSymbol=null, chart=null, days=30;
-        var API='/api';
-        function fmtPrice(p){return p==null?'--':'₹'+p.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-        function fmtRet(r){return r==null?'--':(r>=0?'+':'')+(r*100).toFixed(2)+'%';}
-        function fmtNum(n,d){return n==null?'--':n.toFixed(d);}
-        function fmtDate(d){return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
-        document.getElementById('currentDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-        function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},4000);}
-        async function loadCompanies(){try{companies=await fetch(API+'/companies/').then(function(r){return r.json();});renderStockList();if(companies.length>0)selectStock(companies[0].symbol);renderGainers();}catch(e){showToast('Failed to load data');}}
-        function renderStockList(){var list=document.getElementById('stockList');var html='';for(var i=0;i<companies.length;i++){var c=companies[i];var up=(c.latest_daily_return||0)>=0;html+='<div class="stock-card" data-symbol="'+c.symbol+'"><div class="stock-symbol">'+c.symbol.replace('.NS','')+'</div><div class="stock-name">'+c.name+'</div><div class="stock-price">'+fmtPrice(c.latest_close)+'</div><span class="stock-change '+(up?'up':'down')+'">'+(up?'▲':'▼')+' '+fmtRet(c.latest_daily_return)+'</span></div>';}list.innerHTML=html;var els=document.querySelectorAll('.stock-card');for(var j=0;j<els.length;j++){els[j].addEventListener('click',function(){selectStock(this.dataset.symbol);});}}
-        async function selectStock(symbol){selectedSymbol=symbol;var els=document.querySelectorAll('.stock-card');for(var i=0;i<els.length;i++){els[i].classList.toggle('active',els[i].dataset.symbol===symbol);}var c=null;for(var j=0;j<companies.length;j++){if(companies[j].symbol===symbol){c=companies[j];break;}}document.getElementById('chartTitle').textContent=c?c.name:symbol;document.getElementById('chartPrice').textContent=c?fmtPrice(c.latest_close):'';await Promise.all([loadChart(symbol,days),loadStats(symbol)]);}
-        async function loadChart(symbol,d){try{var res=await fetch(API+'/data/'+symbol+'?days='+d);var data=await res.json();renderChart(data.data);}catch(e){showToast('Chart failed');}}
-        function renderChart(prices){document.getElementById('chartContainer').innerHTML='<canvas id="chart"></canvas>';var ctx=document.getElementById('chart').getContext('2d');if(chart)chart.destroy();var gradient=ctx.createLinearGradient(0,0,0,300);gradient.addColorStop(0,'rgba(79,70,229,0.2)');gradient.addColorStop(1,'rgba(79,70,229,0)');chart=new Chart(ctx,{type:'line',data:{labels:prices.map(function(p){return fmtDate(p.date);}),datasets:[{data:prices.map(function(p){return p.close;}),borderColor:'#4f46e5',backgroundColor:gradient,fill:true,tension:0.4,borderWidth:2.5,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:'#4f46e5',pointHoverBorderColor:'#fff',pointHoverBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#64748b',bodyColor:'#1e293b',borderColor:'#e2e8f0',borderWidth:1,padding:12,displayColors:false,title:function(i){return i[0].label;},label:function(i){return'₹'+i.raw.toLocaleString('en-IN',{minimumFractionDigits:2});}}},scales:{x:{grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',maxTicksLimit:8}},y:{grid:{color:'#f1f5f9'},ticks:{color:'#94a3b8',callback:function(v){return'₹'+v;}}}}});}
-        async function loadStats(symbol){try{var res=await fetch(API+'/summary/'+symbol);var data=await res.json();document.getElementById('statHigh').textContent=fmtPrice(data.week52_high);document.getElementById('statLow').textContent=fmtPrice(data.week52_low);document.getElementById('statAvg').textContent=fmtPrice(data.avg_close);document.getElementById('statVol').textContent=fmtNum(data.avg_volatility_score,4);var els=document.querySelectorAll('.stat-value');for(var i=0;i<els.length;i++){els[i].classList.remove('skeleton','skeleton-stat');}}catch(e){}}
-        async function compareStocks(s1,s2){try{var res=await fetch(API+'/compare?symbol1='+s1+'&symbol2='+s2+'&days=30');var d=await res.json();var box=document.getElementById('compareResults');box.classList.add('show');var s1Data=d.symbol1_stats,s2Data=d.symbol2_stats,better=d.better_performer;document.getElementById('stock1Name').textContent=s1.replace('.NS','');document.getElementById('stock1Return').textContent=fmtRet(s1Data.total_return_pct/100);document.getElementById('stock1Return').style.color=s1Data.total_return_pct>=0?'#10b981':'#ef4444';document.getElementById('stock1Avg').textContent=fmtPrice(s1Data.avg_close);document.getElementById('stock1Max').textContent=fmtPrice(s1Data.max_close);document.getElementById('stock1Vol').textContent=fmtNum(s1Data.avg_volatility,4);document.querySelector('#compareResults .compare-stock:first-child .trophy').classList.toggle('hidden',s1!==better);document.getElementById('stock2Name').textContent=s2.replace('.NS','');document.getElementById('stock2Return').textContent=fmtRet(s2Data.total_return_pct/100);document.getElementById('stock2Return').style.color=s2Data.total_return_pct>=0?'#10b981':'#ef4444';document.getElementById('stock2Avg').textContent=fmtPrice(s2Data.avg_close);document.getElementById('stock2Max').textContent=fmtPrice(s2Data.max_close);document.getElementById('stock2Vol').textContent=fmtNum(s2Data.avg_volatility,4);document.querySelector('#compareResults .compare-stock:last-child .trophy').classList.toggle('hidden',s2!==better);document.getElementById('corrValue').textContent=d.correlation.toFixed(4);}catch(e){showToast('Compare failed');}}
-        function renderGainers(){var sorted=companies.slice().sort(function(a,b){return(b.latest_daily_return||0)-(a.latest_daily_return||0);});var gainers=sorted.filter(function(c){return(c.latest_daily_return||0)>0;}).slice(0,5);var list=document.getElementById('gainersList');var html='';for(var i=0;i<gainers.length;i++){var c=gainers[i];html+='<div class="perf-item"><span class="rank-badge gainers">'+(i+1)+'</span><div class="perf-info"><div class="perf-symbol">'+c.symbol.replace('.NS','')+'</div><div class="perf-name">'+c.name+'</div></div><span class="perf-change" style="color:#10b981">'+fmtRet(c.latest_daily_return)+'</span></div>';}list.innerHTML=html;}
-        var btns=document.querySelectorAll('.time-btn');for(var i=0;i<btns.length;i++){btns[i].addEventListener('click',async function(){var allBtns=document.querySelectorAll('.time-btn');for(var j=0;j<allBtns.length;j++){allBtns[j].classList.remove('active');}this.classList.add('active');days=parseInt(this.dataset.days);if(selectedSymbol)await loadChart(selectedSymbol,days);});}
-        loadCompanies();
-    </script>
+    <div class="header-search">
+      <svg class="header-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search symbol or company..." autocomplete="off">
+    </div>
+    <div class="header-right">
+      <div class="market-status">
+        <span class="market-dot"></span>
+        Market Open
+      </div>
+      <div class="avatar">YJ</div>
+    </div>
+  </header>
+
+  <!-- BODY -->
+  <div class="body-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-label">Watchlist</span>
+        <span class="count-badge" id="countBadge">—</span>
+      </div>
+      <div class="sidebar-list" id="sidebarList">
+        <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+          <div class="skeleton" style="height:68px;border-radius:8px;"></div>
+          <div class="skeleton" style="height:68px;border-radius:8px;"></div>
+          <div class="skeleton" style="height:68px;border-radius:8px;"></div>
+          <div class="skeleton" style="height:68px;border-radius:8px;"></div>
+        </div>
+      </div>
+      <div class="sidebar-footer">Data via yfinance &bull; NSE/BSE</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- TOOLBAR -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <span class="toolbar-company-name" id="toolbarName">Select a company</span>
+          <span class="symbol-pill" id="toolbarSymbol"></span>
+        </div>
+        <div class="time-filters" id="timeFilters">
+          <button class="time-btn" data-days="7">7D</button>
+          <button class="time-btn active" data-days="30">30D</button>
+          <button class="time-btn" data-days="90">90D</button>
+          <button class="time-btn" data-days="180">180D</button>
+          <button class="time-btn" data-days="365">1Y</button>
+        </div>
+      </div>
+
+      <!-- CHART -->
+      <div class="chart-card">
+        <div class="chart-wrapper" id="chartWrapper">
+          <div class="skeleton chart-skeleton" id="chartSkeleton"></div>
+          <canvas id="stockChart" style="display:none;"></canvas>
+        </div>
+      </div>
+
+      <!-- METRIC CARDS -->
+      <div class="metric-row" id="metricRow">
+        <div class="metric-card">
+          <div class="metric-header">
+            <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <span class="metric-label">52W High</span>
+          </div>
+          <div class="metric-value skeleton" id="statHigh" style="height:36px;width:70%;"></div>
+          <div class="metric-desc">52-week peak price</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header">
+            <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2.5"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            <span class="metric-label">52W Low</span>
+          </div>
+          <div class="metric-value skeleton" id="statLow" style="height:36px;width:70%;"></div>
+          <div class="metric-desc">52-week trough price</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header">
+            <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="metric-label">Avg Close</span>
+          </div>
+          <div class="metric-value skeleton" id="statAvg" style="height:36px;width:70%;"></div>
+          <div class="metric-desc">30-day average close</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header">
+            <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="var(--accent-yellow)" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span class="metric-label">Volatility</span>
+          </div>
+          <div class="metric-value skeleton" id="statVol" style="height:36px;width:70%;"></div>
+          <div class="metric-desc">30-day volatility score</div>
+        </div>
+      </div>
+
+      <!-- COMPARE PANEL -->
+      <div class="compare-card">
+        <div class="compare-header">
+          <span class="compare-title">Compare Stocks</span>
+          <span class="beta-pill">Beta</span>
+        </div>
+        <div class="compare-inputs">
+          <select class="compare-select" id="compareS1"></select>
+          <select class="compare-select" id="compareS2"></select>
+          <button class="compare-btn-action" id="compareBtn">Compare</button>
+        </div>
+        <div class="compare-results" id="compareResults">
+          <div class="compare-vs-row">
+            <div class="compare-stock-card" id="compareCard1">
+              <div class="compare-stock-symbol" id="c1Symbol">—</div>
+              <div class="compare-stock-name" id="c1Name">—</div>
+              <div class="compare-return" id="c1Return">—</div>
+              <div class="compare-stats-list">
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Avg Close</span><span class="compare-stat-val" id="c1Avg">—</span></div>
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Max</span><span class="compare-stat-val" id="c1Max">—</span></div>
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Min</span><span class="compare-stat-val" id="c1Min">—</span></div>
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Avg Volatility</span><span class="compare-stat-val" id="c1Vol">—</span></div>
+              </div>
+            </div>
+            <div class="vs-divider">VS</div>
+            <div class="compare-stock-card" id="compareCard2">
+              <div class="compare-stock-symbol" id="c2Symbol">—</div>
+              <div class="compare-stock-name" id="c2Name">—</div>
+              <div class="compare-return" id="c2Return">—</div>
+              <div class="compare-stats-list">
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Avg Close</span><span class="compare-stat-val" id="c2Avg">—</span></div>
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Max</span><span class="compare-stat-val" id="c2Max">—</span></div>
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Min</span><span class="compare-stat-val" id="c2Min">—</span></div>
+                <div class="compare-stat-row"><span class="compare-stat-dot"></span><span class="compare-stat-label">Avg Volatility</span><span class="compare-stat-val" id="c2Vol">—</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="correlation-row">
+            <span class="correlation-label">Correlation:</span>
+            <span class="correlation-value" id="corrVal">—</span>
+            <span class="correlation-desc" id="corrDesc">—</span>
+            <div class="correlation-bar-wrap"><div class="correlation-bar" id="corrBar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAINERS / LOSERS -->
+      <div class="gl-row">
+        <div class="gl-card">
+          <div class="gl-header">
+            <span class="gl-title">🚀 Top Gainers</span>
+            <span class="today-pill">Today</span>
+          </div>
+          <div id="gainersList">
+            <div class="skeleton gl-skeleton"></div>
+            <div class="skeleton gl-skeleton"></div>
+            <div class="skeleton gl-skeleton"></div>
+          </div>
+        </div>
+        <div class="gl-card">
+          <div class="gl-header">
+            <span class="gl-title">📉 Top Losers</span>
+            <span class="today-pill">Today</span>
+          </div>
+          <div id="losersList">
+            <div class="skeleton gl-skeleton"></div>
+            <div class="skeleton gl-skeleton"></div>
+            <div class="skeleton gl-skeleton"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
 </body>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const MOCK_MODE = false; // set true to run without backend
+const API = 'http://localhost:8000/api';
+
+// ─── MOCK DATA ────────────────────────────────────────────────────────────────
+const MOCK_COMPANIES = [
+  { symbol: 'TCS.NS',        name: 'Tata Consultancy Services', sector: 'IT',      latest_close: 3847.50, latest_daily_return:  0.0124 },
+  { symbol: 'INFY.NS',       name: 'Infosys Ltd',               sector: 'IT',      latest_close: 1823.30, latest_daily_return: -0.0087 },
+  { symbol: 'RELIANCE.NS',   name: 'Reliance Industries',       sector: 'Energy',  latest_close: 2945.60, latest_daily_return:  0.0203 },
+  { symbol: 'HDFCBANK.NS',   name: 'HDFC Bank',                 sector: 'Finance', latest_close: 1672.80, latest_daily_return:  0.0056 },
+  { symbol: 'WIPRO.NS',      name: 'Wipro Ltd',                 sector: 'IT',      latest_close:  478.90, latest_daily_return: -0.0143 },
+  { symbol: 'ICICIBANK.NS',  name: 'ICICI Bank',                sector: 'Finance', latest_close: 1089.40, latest_daily_return:  0.0178 },
+  { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance',             sector: 'Finance', latest_close: 6823.70, latest_daily_return:  0.0312 },
+  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors',               sector: 'Auto',    latest_close:  923.15, latest_daily_return: -0.0221 },
+];
+
+function mockChartData(symbol, days) {
+  const co = MOCK_COMPANIES.find(c => c.symbol === symbol);
+  const base = co ? co.latest_close : 1000;
+  const seed = symbol.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  function seededRand(i) {
+    const x = Math.sin(seed + i) * 10000;
+    return x - Math.floor(x);
+  }
+  const prices = [];
+  let price = base;
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const r = (seededRand(i) - 0.48) * 0.025;
+    price = price * (1 + r);
+    prices.push({ date: d.toISOString().slice(0, 10), close: +price.toFixed(2), daily_return: r, volume: Math.floor(seededRand(i + 1000) * 1500000 + 200000) });
+  }
+  return prices;
+}
+
+function mockSummary(symbol) {
+  const data = mockChartData(symbol, 252);
+  const closes = data.map(d => d.close);
+  const last30 = closes.slice(-30);
+  return {
+    week52_high: Math.max(...closes),
+    week52_low:  Math.min(...closes),
+    avg_close:   last30.reduce((a, b) => a + b, 0) / last30.length,
+    avg_volatility_score: 0.018 + Math.random() * 0.01,
+  };
+}
+
+function mockCompare(s1, s2, days) {
+  function stats(sym) {
+    const data = mockChartData(sym, days);
+    const closes = data.map(d => d.close);
+    const returns = data.map(d => d.daily_return);
+    return {
+      symbol: sym,
+      avg_close: closes.reduce((a, b) => a + b, 0) / closes.length,
+      total_return_pct: ((closes[closes.length - 1] - closes[0]) / closes[0]) * 100,
+      max_close: Math.max(...closes),
+      min_close: Math.min(...closes),
+      avg_volatility: returns.reduce((a, b) => a + Math.abs(b), 0) / returns.length,
+    };
+  }
+  const st1 = stats(s1), st2 = stats(s2);
+  return {
+    symbol1_stats: st1,
+    symbol2_stats: st2,
+    correlation: 0.6 + Math.random() * 0.35,
+    better_performer: st1.total_return_pct >= st2.total_return_pct ? s1 : s2,
+  };
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let companies = [];
+let selectedSymbol = null;
+let selectedDays = 30;
+let chartInstance = null;
+
+// ─── FORMATTERS ───────────────────────────────────────────────────────────────
+function fmtPrice(v) {
+  if (v == null) return '—';
+  return '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtReturn(v) {
+  if (v == null) return '—';
+  const pct = (v * 100).toFixed(2);
+  return (v >= 0 ? '+' : '') + pct + '%';
+}
+function fmtReturnRaw(v) {
+  if (v == null) return '—';
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+function fmtVol(v) {
+  if (v == null) return '—';
+  return Number(v).toFixed(4);
+}
+function fmtDate(str) {
+  const d = new Date(str);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+function shortName(symbol) {
+  return symbol.replace('.NS', '').replace('.BSE', '').slice(0, 2).toUpperCase();
+}
+
+// ─── AVATAR COLORS ────────────────────────────────────────────────────────────
+const AVATAR_PALETTE = [
+  { bg: '#eff6ff', color: '#2563eb' },
+  { bg: '#ecfdf5', color: '#059669' },
+  { bg: '#fef2f2', color: '#dc2626' },
+  { bg: '#fffbeb', color: '#d97706' },
+  { bg: '#f5f3ff', color: '#7c3aed' },
+  { bg: '#fff7ed', color: '#ea580c' },
+  { bg: '#f0fdf4', color: '#16a34a' },
+  { bg: '#fdf4ff', color: '#a21caf' },
+];
+function avatarColor(symbol) {
+  const idx = symbol.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[idx];
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span class="toast-msg">${message}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// ─── LOADING ──────────────────────────────────────────────────────────────────
+function showLoading(section) {
+  if (section === 'chart') {
+    document.getElementById('chartSkeleton').style.display = 'block';
+    document.getElementById('stockChart').style.display = 'none';
+  }
+  if (section === 'metrics') {
+    ['statHigh','statLow','statAvg','statVol'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.add('skeleton');
+      el.textContent = '';
+    });
+  }
+}
+function hideLoading(section) {
+  if (section === 'chart') {
+    document.getElementById('chartSkeleton').style.display = 'none';
+    document.getElementById('stockChart').style.display = 'block';
+  }
+  if (section === 'metrics') {
+    ['statHigh','statLow','statAvg','statVol'].forEach(id => {
+      document.getElementById(id).classList.remove('skeleton');
+    });
+  }
+}
+</script>
+
+<script>
+// ─── FETCH / MOCK WRAPPERS ────────────────────────────────────────────────────
+async function fetchCompanies() {
+  if (MOCK_MODE) return MOCK_COMPANIES;
+  const res = await fetch(`${API}/companies/`);
+  if (!res.ok) throw new Error('Failed to load companies');
+  return res.json();
+}
+
+async function fetchChartData(symbol, days) {
+  if (MOCK_MODE) return { data: mockChartData(symbol, days) };
+  const res = await fetch(`${API}/data/${encodeURIComponent(symbol)}?days=${days}`);
+  if (!res.ok) throw new Error(`Chart data failed for ${symbol}`);
+  return res.json();
+}
+
+async function fetchSummary(symbol) {
+  if (MOCK_MODE) return mockSummary(symbol);
+  const res = await fetch(`${API}/summary/${encodeURIComponent(symbol)}`);
+  if (!res.ok) throw new Error(`Summary failed for ${symbol}`);
+  return res.json();
+}
+
+async function fetchCompare(s1, s2) {
+  if (MOCK_MODE) return mockCompare(s1, s2, 30);
+  const res = await fetch(`${API}/compare?symbol1=${encodeURIComponent(s1)}&symbol2=${encodeURIComponent(s2)}&days=30`);
+  if (!res.ok) throw new Error('Compare failed');
+  return res.json();
+}
+
+// ─── RENDER SIDEBAR ───────────────────────────────────────────────────────────
+function renderSidebar(data) {
+  const list = document.getElementById('sidebarList');
+  document.getElementById('countBadge').textContent = data.length;
+
+  // Populate compare dropdowns
+  const s1 = document.getElementById('compareS1');
+  const s2 = document.getElementById('compareS2');
+  s1.innerHTML = '';
+  s2.innerHTML = '';
+  data.forEach((c, i) => {
+    const sym = c.symbol.replace('.NS', '');
+    s1.innerHTML += `<option value="${c.symbol}">${sym} — ${c.name}</option>`;
+    s2.innerHTML += `<option value="${c.symbol}">${sym} — ${c.name}</option>`;
+  });
+  if (data.length > 1) s2.selectedIndex = 1;
+
+  list.innerHTML = data.map(c => {
+    const ret = c.latest_daily_return;
+    const up = ret >= 0;
+    const sym = c.symbol.replace('.NS', '');
+    const isActive = c.symbol === selectedSymbol;
+    return `
+      <div class="company-card${isActive ? ' active' : ''}" data-symbol="${c.symbol}">
+        <div class="company-card-top">
+          <span class="company-symbol">${sym}</span>
+          <span class="return-badge ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${fmtReturn(ret)}</span>
+        </div>
+        <div class="company-card-bottom">
+          <span class="company-name">${c.name}</span>
+          <span class="company-price">${fmtPrice(c.latest_close)}</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.company-card').forEach(card => {
+    card.addEventListener('click', () => selectCompany(card.dataset.symbol));
+  });
+}
+
+// ─── SELECT COMPANY ───────────────────────────────────────────────────────────
+async function selectCompany(symbol) {
+  selectedSymbol = symbol;
+  const co = companies.find(c => c.symbol === symbol);
+
+  // Update toolbar
+  document.getElementById('toolbarName').textContent = co ? co.name : symbol;
+  document.getElementById('toolbarSymbol').textContent = symbol.replace('.NS', '');
+
+  // Update sidebar active state
+  document.querySelectorAll('.company-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.symbol === symbol);
+  });
+
+  showLoading('chart');
+  showLoading('metrics');
+
+  await Promise.all([
+    renderChartForSymbol(symbol, selectedDays),
+    renderSummaryCards(symbol),
+  ]);
+}
+
+// ─── RENDER CHART ─────────────────────────────────────────────────────────────
+async function renderChartForSymbol(symbol, days) {
+  try {
+    const json = await fetchChartData(symbol, days);
+    renderChart(json.data);
+  } catch (e) {
+    showToast(e.message);
+    hideLoading('chart');
+  }
+}
+
+function renderChart(prices) {
+  hideLoading('chart');
+  const canvas = document.getElementById('stockChart');
+  const ctx = canvas.getContext('2d');
+
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+  gradient.addColorStop(0, 'rgba(37,99,235,0.15)');
+  gradient.addColorStop(1, 'rgba(37,99,235,0)');
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: prices.map(p => p.date),
+      datasets: [{
+        data: prices.map(p => p.close),
+        borderColor: '#2563eb',
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#2563eb',
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#fff',
+          titleColor: '#475569',
+          bodyColor: '#0f172a',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          padding: { x: 16, y: 12 },
+          boxShadow: '0 12px 32px rgba(0,0,0,0.10)',
+          cornerRadius: 12,
+          displayColors: false,
+          callbacks: {
+            title: items => fmtDate(items[0].label),
+            label: item => {
+              const p = prices[item.dataIndex];
+              const ret = p.daily_return != null ? ((p.daily_return >= 0 ? '▲ +' : '▼ ') + (p.daily_return * 100).toFixed(2) + '%') : '';
+              const vol = p.volume != null ? 'Vol: ' + Number(p.volume).toLocaleString('en-IN') : '';
+              return [`Close: ${fmtPrice(item.raw)}`, ret, vol].filter(Boolean);
+            },
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            maxTicksLimit: 8,
+            callback: (val, idx) => fmtDate(prices[idx]?.date),
+          }
+        },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
+          border: { display: false },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            callback: v => '₹' + Number(v).toLocaleString('en-IN'),
+          }
+        }
+      }
+    }
+  });
+}
+
+// ─── RENDER SUMMARY CARDS ─────────────────────────────────────────────────────
+async function renderSummaryCards(symbol) {
+  try {
+    const data = await fetchSummary(symbol);
+    document.getElementById('statHigh').textContent = fmtPrice(data.week52_high);
+    document.getElementById('statLow').textContent  = fmtPrice(data.week52_low);
+    document.getElementById('statAvg').textContent  = fmtPrice(data.avg_close);
+    document.getElementById('statVol').textContent  = fmtVol(data.avg_volatility_score);
+    hideLoading('metrics');
+  } catch (e) {
+    showToast(e.message);
+    hideLoading('metrics');
+  }
+}
+
+// ─── RENDER GAINERS / LOSERS ──────────────────────────────────────────────────
+function renderGainersLosers(data) {
+  const sorted = [...data].sort((a, b) => (b.latest_daily_return || 0) - (a.latest_daily_return || 0));
+  const gainers = sorted.filter(c => (c.latest_daily_return || 0) > 0).slice(0, 3);
+  const losers  = sorted.filter(c => (c.latest_daily_return || 0) < 0).reverse().slice(0, 3);
+
+  function buildRows(list, isGainer) {
+    if (!list.length) return '<div style="color:var(--text-muted);font-size:13px;padding:12px 0;">No data</div>';
+    return list.map((c, i) => {
+      const sym = c.symbol.replace('.NS', '');
+      const av = avatarColor(c.symbol);
+      const ret = c.latest_daily_return;
+      return `
+        <div class="gl-item">
+          <span class="gl-rank">${i + 1}</span>
+          <div class="gl-avatar" style="background:${av.bg};color:${av.color};">${shortName(c.symbol)}</div>
+          <div class="gl-info">
+            <div class="gl-symbol">${sym}</div>
+            <div class="gl-name">${c.name}</div>
+          </div>
+          <span class="gl-return ${isGainer ? 'up' : 'down'}">${fmtReturn(ret)}</span>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('gainersList').innerHTML = buildRows(gainers, true);
+  document.getElementById('losersList').innerHTML  = buildRows(losers, false);
+}
+
+// ─── RENDER COMPARE PANEL ─────────────────────────────────────────────────────
+function renderComparePanel(data, s1, s2) {
+  const st1 = data.symbol1_stats;
+  const st2 = data.symbol2_stats;
+  const winner = data.better_performer;
+
+  function setCard(prefix, stats, sym, isWinner) {
+    const co = companies.find(c => c.symbol === sym);
+    document.getElementById(`${prefix}Symbol`).textContent = sym.replace('.NS', '');
+    document.getElementById(`${prefix}Name`).textContent   = co ? co.name : sym;
+    const retEl = document.getElementById(`${prefix}Return`);
+    retEl.textContent = fmtReturnRaw(stats.total_return_pct);
+    retEl.className = 'compare-return ' + (stats.total_return_pct >= 0 ? 'up' : 'down');
+    document.getElementById(`${prefix}Avg`).textContent = fmtPrice(stats.avg_close);
+    document.getElementById(`${prefix}Max`).textContent = fmtPrice(stats.max_close);
+    document.getElementById(`${prefix}Min`).textContent = fmtPrice(stats.min_close);
+    document.getElementById(`${prefix}Vol`).textContent = fmtVol(stats.avg_volatility);
+    const card = document.getElementById(`${prefix.replace('c', 'compareCard')}`);
+    card.classList.toggle('winner', isWinner);
+    // trophy
+    let trophy = card.querySelector('.winner-badge');
+    if (isWinner) {
+      if (!trophy) { trophy = document.createElement('span'); trophy.className = 'winner-badge'; card.appendChild(trophy); }
+      trophy.textContent = '🏆';
+    } else if (trophy) trophy.remove();
+  }
+
+  setCard('c1', st1, s1, winner === s1);
+  setCard('c2', st2, s2, winner === s2);
+
+  const corr = data.correlation;
+  document.getElementById('corrVal').textContent = corr.toFixed(4);
+  let desc = 'Weakly Correlated';
+  if (Math.abs(corr) > 0.8) desc = 'Highly Correlated';
+  else if (Math.abs(corr) > 0.5) desc = 'Moderately Correlated';
+  document.getElementById('corrDesc').textContent = '— ' + desc;
+  document.getElementById('corrBar').style.width = Math.abs(corr) * 100 + '%';
+
+  document.getElementById('compareResults').classList.add('show');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function initApp() {
+  try {
+    companies = await fetchCompanies();
+    renderSidebar(companies);
+    renderGainersLosers(companies);
+    if (companies.length > 0) await selectCompany(companies[0].symbol);
+  } catch (e) {
+    showToast('Failed to load data. Is the backend running?');
+  }
+}
+
+// ─── TIME FILTER BUTTONS ──────────────────────────────────────────────────────
+document.getElementById('timeFilters').addEventListener('click', async e => {
+  const btn = e.target.closest('.time-btn');
+  if (!btn) return;
+  document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedDays = parseInt(btn.dataset.days);
+  if (selectedSymbol) {
+    showLoading('chart');
+    await renderChartForSymbol(selectedSymbol, selectedDays);
+  }
+});
+
+// ─── COMPARE BUTTON ───────────────────────────────────────────────────────────
+document.getElementById('compareBtn').addEventListener('click', async () => {
+  const s1 = document.getElementById('compareS1').value;
+  const s2 = document.getElementById('compareS2').value;
+  if (!s1 || !s2 || s1 === s2) { showToast('Please select two different stocks to compare.'); return; }
+  const btn = document.getElementById('compareBtn');
+  btn.textContent = 'Loading…';
+  btn.disabled = true;
+  try {
+    const data = await fetchCompare(s1, s2);
+    renderComparePanel(data, s1, s2);
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    btn.textContent = 'Compare';
+    btn.disabled = false;
+  }
+});
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
 </html>

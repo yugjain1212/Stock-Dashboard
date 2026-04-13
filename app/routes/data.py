@@ -15,13 +15,15 @@ def get_stock_data(
     if not company:
         raise HTTPException(status_code=404, detail=f"Symbol {symbol} not found")
 
+    # Get the most recent `days` records, then reverse for ascending chart display
     prices = (
         db.query(StockPrice)
         .filter(StockPrice.symbol == symbol)
-        .order_by(StockPrice.date)
+        .order_by(StockPrice.date.desc())
         .limit(days)
         .all()
     )
+    prices = list(reversed(prices))
 
     data = [
         StockPriceResponse(
