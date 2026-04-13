@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockIQ Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --bg-card-hover: #1e2a3d;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #475569;
+            --border: #1e293b;
+            --border-light: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 60px 1fr;
+            min-height: 100vh;
+        }
+
+        header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--accent-green);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .last-updated {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            overflow-y: auto;
+            max-height: calc(100vh - 60px);
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .company-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .company-card:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .company-card.active {
+            border-left-color: var(--accent-blue);
+            background: var(--bg-card-hover);
+        }
+
+        .company-symbol {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .company-name {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .company-metrics {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .company-price {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .company-return {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .return-up { color: var(--accent-green); }
+        .return-down { color: var(--accent-red); }
+
+        .main-content {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(100vh - 60px);
+        }
+
+        .chart-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .time-filters {
+            display: flex;
+            gap: 8px;
+        }
+
+        .time-filter-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .time-filter-btn:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .time-filter-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .summary-card.high::after { background: var(--accent-green); }
+        .summary-card.low::after { background: var(--accent-red); }
+        .summary-card.avg::after { background: var(--accent-blue); }
+        .summary-card.volatility::after { background: var(--accent-yellow); }
+
+        .summary-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .summary-icon {
+            width: 14px;
+            height: 14px;
+            cursor: help;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .compare-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .compare-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .compare-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .compare-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .compare-btn {
+            background: var(--accent-blue);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .compare-btn:hover {
+            background: #2563eb;
+        }
+
+        .compare-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .compare-card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .compare-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .compare-card-symbol {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .trophy-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .compare-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .compare-stat {
+            font-size: 13px;
+        }
+
+        .compare-stat-label {
+            color: var(--text-secondary);
+        }
+
+        .compare-stat-value {
+            font-weight: 600;
+        }
+
+        .correlation-badge {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+
+        .correlation-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .correlation-value {
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .gainers-losers {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .gl-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .gl-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .gl-title.gainers { color: var(--accent-green); }
+        .gl-title.losers { color: var(--accent-red); }
+
+        .gl-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .gl-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+        }
+
+        .gl-rank {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .gl-rank.gainers { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .gl-rank.losers { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+
+        .gl-symbol {
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .gl-name {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .gl-return {
+            font-weight: 600;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-card {
+            height: 72px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-chart {
+            height: 300px;
+        }
+
+        .skeleton-summary {
+            height: 100px;
+        }
+
+        .error-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--accent-red);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .error-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeUp 0.4s ease forwards;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 1200px) {
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .gainers-losers {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <div class="logo-section">
+                <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
+                    <path d="M4 24L10 18L16 20L22 12L28 8" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4 28H28" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
+                    <circle cx="10" cy="18" r="2" fill="#10b981"/>
+                    <circle cx="16" cy="20" r="2" fill="#10b981"/>
+                    <circle cx="22" cy="12" r="2" fill="#10b981"/>
+                    <circle cx="28" cy="8" r="2" fill="#10b981"/>
+                </svg>
+                <span class="logo-text">StockIQ Dashboard</span>
+            </div>
+            <div class="status-section">
+                <div class="live-badge">
+                    <span class="live-dot"></span>
+                    <span>Live</span>
+                </div>
+                <span class="last-updated" id="lastUpdated">Last updated: --</span>
+            </div>
+        </header>
+
+        <aside class="sidebar">
+            <div class="sidebar-title">Companies</div>
+            <div id="companyList">
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+                <div class="skeleton skeleton-card"></div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="chart-section">
+                <div class="chart-header">
+                    <div class="chart-title" id="chartTitle">Select a company</div>
+                    <div class="time-filters">
+                        <button class="time-filter-btn" data-days="7">7D</button>
+                        <button class="time-filter-btn active" data-days="30">30D</button>
+                        <button class="time-filter-btn" data-days="90">90D</button>
+                        <button class="time-filter-btn" data-days="180">180D</button>
+                        <button class="time-filter-btn" data-days="365">1Y</button>
+                    </div>
+                </div>
+                <div class="chart-container" id="chartContainer">
+                    <div class="skeleton skeleton-chart"></div>
+                </div>
+            </div>
+
+            <div class="summary-cards" id="summaryCards">
+                <div class="summary-card high">
+                    <div class="summary-label">
+                        52W High
+                        <svg class="summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>
+                        </svg>
+                    </div>
+                    <div class="summary-value skeleton skeleton-summary"></div>
+                </div>
+                <div class="summary-card low">
+                    <div class="summary-label">52W Low</div>
+                    <div class="summary-value skeleton skeleton-summary"></div>
+                </div>
+                <div class="summary-card avg">
+                    <div class="summary-label">Avg Close 30D</div>
+                    <div class="summary-value skeleton skeleton-summary"></div>
+                </div>
+                <div class="summary-card volatility">
+                    <div class="summary-label">
+                        Volatility Score
+                        <svg class="summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" title="Annualized volatility based on 30-day rolling standard deviation of daily returns">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>
+                        </svg>
+                    </div>
+                    <div class="summary-value skeleton skeleton-summary"></div>
+                </div>
+            </div>
+
+            <div class="compare-section">
+                <div class="compare-header">Compare Stocks</div>
+                <div class="compare-controls">
+                    <select class="compare-select" id="compareSymbol1">
+                        <option value="">Select symbol...</option>
+                    </select>
+                    <span style="color: var(--text-muted)">vs</span>
+                    <select class="compare-select" id="compareSymbol2">
+                        <option value="">Select symbol...</option>
+                    </select>
+                    <button class="compare-btn" id="compareBtn">Compare</button>
+                </div>
+                <div class="compare-results hidden" id="compareResults">
+                    <div class="compare-card" id="compareCard1">
+                        <div class="compare-card-header">
+                            <span class="compare-card-symbol"></span>
+                            <svg class="trophy-icon hidden" viewBox="0 0 24 24">
+                                <path d="M12 15c-1.5 0-2.5 1-2.5 1s1-1 2.5-1 2.5 1 2.5-1-1-1-2.5-1z" fill="#f59e0b"/>
+                                <path d="M12 15c-3-2-5-4-5-7 0-3 2.5-5 5-5s5 2 5 5c0 3-2 5-5 7z" fill="#f59e0b"/>
+                                <rect x="11" y="15" width="2" height="4" fill="#f59e0b"/>
+                            </svg>
+                        </div>
+                        <div class="compare-stats">
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Total Return</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Avg Close</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Avg Volatility</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Max Close</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="compare-card" id="compareCard2">
+                        <div class="compare-card-header">
+                            <span class="compare-card-symbol"></span>
+                            <svg class="trophy-icon hidden" viewBox="0 0 24 24">
+                                <path d="M12 15c-1.5 0-2.5 1-2.5 1s1-1 2.5-1 2.5 1 2.5-1-1-1-2.5-1z" fill="#f59e0b"/>
+                                <path d="M12 15c-3-2-5-4-5-7 0-3 2.5-5 5-5s5 2 5 5c0 3-2 5-5 7z" fill="#f59e0b"/>
+                                <rect x="11" y="15" width="2" height="4" fill="#f59e0b"/>
+                            </svg>
+                        </div>
+                        <div class="compare-stats">
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Total Return</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Avg Close</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Avg Volatility</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                            <div class="compare-stat">
+                                <div class="compare-stat-label">Max Close</div>
+                                <div class="compare-stat-value"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="correlation-badge">
+                        <span class="correlation-label">Correlation:</span>
+                        <span class="correlation-value" id="correlationValue"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gainers-losers">
+                <div class="gl-section">
+                    <div class="gl-title gainers">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 19V5m-7 7l7-7 7 7"/>
+                        </svg>
+                        Top Gainers
+                    </div>
+                    <div class="gl-list" id="gainersList">
+                        <div class="skeleton" style="height: 44px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 44px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 44px;"></div>
+                    </div>
+                </div>
+                <div class="gl-section">
+                    <div class="gl-title losers">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14m7-7l-7 7-7-7"/>
+                        </svg>
+                        Top Losers
+                    </div>
+                    <div class="gl-list" id="losersList">
+                        <div class="skeleton" style="height: 44px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 44px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 44px;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="error-toast" id="errorToast"></div>
+
+    <script>
+        let companies = [];
+        let selectedSymbol = null;
+        let chartInstance = null;
+        let currentDays = 30;
+
+        const API_BASE = '/api';
+
+        async function fetchAPI(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        function showError(message) {
+            const toast = document.getElementById('errorToast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        function formatNumber(num, decimals = 2) {
+            if (num == null || isNaN(num)) return '--';
+            return num.toFixed(decimals);
+        }
+
+        function formatReturn(ret) {
+            if (ret == null || isNaN(ret)) return '--';
+            const sign = ret >= 0 ? '+' : '';
+            return `${sign}${(ret * 100).toFixed(2)}%`;
+        }
+
+        function formatPrice(price) {
+            if (price == null || isNaN(price)) return '--';
+            return '₹' + price.toFixed(2);
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        }
+
+        async function loadCompanies() {
+            try {
+                companies = await fetchAPI(`${API_BASE}/companies`);
+                renderCompanyList();
+                updateCompareSelects();
+                
+                if (companies.length > 0) {
+                    selectCompany(companies[0].symbol);
+                }
+                
+                loadHealth();
+                renderGainersLosers();
+            } catch (error) {
+                console.error('Failed to load companies:', error);
+                showError('Failed to load companies');
+            }
+        }
+
+        function renderCompanyList() {
+            const list = document.getElementById('companyList');
+            list.innerHTML = companies.map((c, i) => {
+                const returnClass = (c.latest_daily_return || 0) >= 0 ? 'return-up' : 'return-down';
+                const arrow = (c.latest_daily_return || 0) >= 0 ? '▲' : '▼';
+                return `
+                    <div class="company-card animate-in" data-symbol="${c.symbol}" style="animation-delay: ${i * 50}ms">
+                        <div class="company-symbol">${c.symbol.replace('.NS', '').replace('^', '')}</div>
+                        <div class="company-name">${c.name}</div>
+                        <div class="company-metrics">
+                            <span class="company-price">${formatPrice(c.latest_close)}</span>
+                            <span class="company-return ${returnClass}">${arrow} ${formatReturn(c.latest_daily_return)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.company-card').forEach(card => {
+                card.addEventListener('click', () => selectCompany(card.dataset.symbol));
+            });
+        }
+
+        async function selectCompany(symbol) {
+            selectedSymbol = symbol;
+            
+            document.querySelectorAll('.company-card').forEach(c => {
+                c.classList.toggle('active', c.dataset.symbol === symbol);
+            });
+
+            document.getElementById('chartTitle').textContent = symbol.replace('.NS', '').replace('^', 'NIFTY 50 ');
+            
+            await loadChartData(symbol, currentDays);
+            await loadSummary(symbol);
+        }
+
+        async function loadChartData(symbol, days) {
+            try {
+                const container = document.getElementById('chartContainer');
+                container.innerHTML = '<div class="skeleton skeleton-chart"></div>';
+
+                const data = await fetchAPI(`${API_BASE}/data/${symbol}?days=${days}`);
+                renderChart(data.data);
+            } catch (error) {
+                console.error('Failed to load chart data:', error);
+                showError('Failed to load chart data');
+            }
+        }
+
+        function renderChart(prices) {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '<canvas id="priceChart"></canvas>';
+
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            const labels = prices.map(p => formatDate(p.date));
+            const closes = prices.map(p => p.close);
+
+            if (chartInstance) chartInstance.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Close Price',
+                        data: closes,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#3b82f6',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a2235',
+                            titleColor: '#94a3b8',
+                            bodyColor: '#f1f5f9',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => items[0].label,
+                                label: (item) => {
+                                    const price = prices[item.dataIndex];
+                                    return [
+                                        `Close: ${formatPrice(price.close)}`,
+                                        `Return: ${formatReturn(price.daily_return)}`,
+                                        `Volume: ${(price.volume / 100000).toFixed(2)}L`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#475569', maxTicksLimit: 8 }
+                        },
+                        y: {
+                            grid: { color: '#1e293b' },
+                            ticks: {
+                                color: '#475569',
+                                callback: (v) => '₹' + v
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadSummary(symbol) {
+            try {
+                const summary = await fetchAPI(`${API_BASE}/summary/${symbol}`);
+                renderSummaryCards(summary);
+            } catch (error) {
+                console.error('Failed to load summary:', error);
+                showError('Failed to load summary');
+            }
+        }
+
+        function renderSummaryCards(summary) {
+            const cards = document.querySelectorAll('.summary-card');
+            const values = [
+                { label: '52W High', value: formatPrice(summary.week52_high), cls: 'high' },
+                { label: '52W Low', value: formatPrice(summary.week52_low), cls: 'low' },
+                { label: 'Avg Close 30D', value: formatPrice(summary.avg_close), cls: 'avg' },
+                { label: 'Volatility Score', value: formatNumber(summary.avg_volatility_score, 4), cls: 'volatility' }
+            ];
+
+            cards.forEach((card, i) => {
+                card.className = `summary-card ${values[i].cls} animate-in`;
+                card.querySelector('.summary-label').innerHTML = values[i].label;
+                if (i === 3) {
+                    card.querySelector('.summary-label').innerHTML = `
+                        Volatility Score
+                        <svg class="summary-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" title="Annualized volatility based on 30-day rolling standard deviation of daily returns">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>
+                        </svg>
+                    `;
+                }
+                card.querySelector('.summary-value').textContent = values[i].value;
+                card.querySelector('.summary-value').classList.remove('skeleton', 'skeleton-summary');
+            });
+        }
+
+        function updateCompareSelects() {
+            const select1 = document.getElementById('compareSymbol1');
+            const select2 = document.getElementById('compareSymbol2');
+            
+            const options = companies.map(c => 
+                `<option value="${c.symbol}">${c.symbol.replace('.NS', '').replace('^', '')}</option>`
+            ).join('');
+
+            select1.innerHTML = '<option value="">Select symbol...</option>' + options;
+            select2.innerHTML = '<option value="">Select symbol...</option>' + options;
+        }
+
+        async function loadCompare() {
+            const symbol1 = document.getElementById('compareSymbol1').value;
+            const symbol2 = document.getElementById('compareSymbol2').value;
+
+            if (!symbol1 || !symbol2) {
+                showError('Please select two symbols');
+                return;
+            }
+
+            try {
+                const data = await fetchAPI(`${API_BASE}/compare?symbol1=${symbol1}&symbol2=${symbol2}&days=30`);
+                renderCompareResults(data);
+            } catch (error) {
+                console.error('Failed to compare:', error);
+                showError('Failed to compare stocks');
+            }
+        }
+
+        function renderCompareResults(data) {
+            const results = document.getElementById('compareResults');
+            results.classList.remove('hidden');
+
+            const stats1 = data.symbol1_stats;
+            const stats2 = data.symbol2_stats;
+            const better = data.better_performer;
+
+            const cards = [
+                { card: document.getElementById('compareCard1'), stats: stats1 },
+                { card: document.getElementById('compareCard2'), stats: stats2 }
+            ];
+
+            cards.forEach(({ card, stats }) => {
+                const isBetter = stats.symbol === better;
+                card.querySelector('.compare-card-symbol').textContent = stats.symbol.replace('.NS', '').replace('^', '');
+                card.querySelector('.trophy-icon').classList.toggle('hidden', !isBetter);
+                
+                const statEls = card.querySelectorAll('.compare-stat-value');
+                statEls[0].textContent = formatReturn(stats.total_return_pct / 100);
+                statEls[1].textContent = formatPrice(stats.avg_close);
+                statEls[2].textContent = formatNumber(stats.avg_volatility, 4);
+                statEls[3].textContent = formatPrice(stats.max_close);
+            });
+
+            const correlation = data.correlation;
+            const corrEl = document.getElementById('correlationValue');
+            corrEl.textContent = correlation.toFixed(4);
+
+            if (Math.abs(correlation) > 0.8) {
+                corrEl.textContent += ' (Highly Correlated)';
+            } else if (Math.abs(correlation) > 0.5) {
+                corrEl.textContent += ' (Moderately Correlated)';
+            } else {
+                corrEl.textContent += ' (Weakly Correlated)';
+            }
+        }
+
+        async function loadHealth() {
+            try {
+                const health = await fetchAPI(`${API_BASE}/health`);
+                document.getElementById('lastUpdated').textContent = `Last updated: ${health.last_updated || '--'}`;
+            } catch (error) {
+                console.error('Failed to load health:', error);
+            }
+        }
+
+        async function renderGainersLosers() {
+            const sorted = [...companies].sort((a, b) => (b.latest_daily_return || 0) - (a.latest_daily_return || 0));
+            const gainers = sorted.filter(c => (c.latest_daily_return || 0) > 0).slice(0, 3);
+            const losers = sorted.filter(c => (c.latest_daily_return || 0) < 0).sort((a, b) => (a.latest_daily_return || 0) - (b.latest_daily_return || 0)).slice(0, 3);
+
+            renderGLList('gainersList', gainers, true);
+            renderGLList('losersList', losers, false);
+        }
+
+        function renderGLList(elementId, stocks, isGainers) {
+            const list = document.getElementById(elementId);
+            list.innerHTML = stocks.map((c, i) => `
+                <div class="gl-item animate-in" style="animation-delay: ${i * 100}ms">
+                    <span class="gl-rank ${isGainers ? 'gainers' : 'losers'}">${i + 1}</span>
+                    <span class="gl-symbol">${c.symbol.replace('.NS', '').replace('^', '')}</span>
+                    <span class="gl-name">${c.name}</span>
+                    <span class="gl-return ${isGainers ? 'return-up' : 'return-down'}">${formatReturn(c.latest_daily_return)}</span>
+                </div>
+            `).join('');
+        }
+
+        document.querySelectorAll('.time-filter-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                document.querySelectorAll('.time-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentDays = parseInt(btn.dataset.days);
+                
+                if (selectedSymbol) {
+                    await loadChartData(selectedSymbol, currentDays);
+                }
+            });
+        });
+
+        document.getElementById('compareBtn').addEventListener('click', loadCompare);
+
+        document.addEventListener('DOMContentLoaded', loadCompanies);
+    </script>
+</body>
+</html>
