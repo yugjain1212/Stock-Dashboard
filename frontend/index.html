@@ -691,35 +691,38 @@
                         <button class="compare-btn" onclick="quickCompare('TCS.NS', 'RELIANCE.NS')">TCS vs RELIANCE</button>
                         <button class="compare-btn" onclick="quickCompare('INFY.NS', 'RELIANCE.NS')">INFY vs RELIANCE</button>
                     </div>
-                    <div class="compare-results show" id="compareResults">
+                    <div class="compare-results" id="compareResults">
+                        
                         <div class="compare-stock">
                             <div class="compare-stock-header">
-                                <span class="compare-stock-name" id="stock1Name"></span>
+                                <span class="compare-stock-name" id="stock1Name">--</span>
                                 <svg class="trophy hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2l3 7h8l-6.5 5 2.5 8L12 18l-7 4 2.5-8L1 9h8l3-7z"/>
                                 </svg>
                             </div>
                             <div class="compare-stats-grid">
-                                <div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock1Return"></div></div>
-                                <div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock1Avg"></div></div>
-                                <div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock1Max"></div></div>
-                                <div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock1Vol"></div></div>
+                                <div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock1Return">--</div></div>
+                                <div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock1Avg">--</div></div>
+                                <div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock1Max">--</div></div>
+                                <div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock1Vol">--</div></div>
                             </div>
                         </div>
+                        
                         <div class="compare-stock">
                             <div class="compare-stock-header">
-                                <span class="compare-stock-name" id="stock2Name"></span>
+                                <span class="compare-stock-name" id="stock2Name">--</span>
                                 <svg class="trophy hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2l3 7h8l-6.5 5 2.5 8L12 18l-7 4 2.5-8L1 9h8l3-7z"/>
                                 </svg>
                             </div>
                             <div class="compare-stats-grid">
-                                <div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock2Return"></div></div>
-                                <div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock2Avg"></div></div>
-                                <div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock2Max"></div></div>
-                                <div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock2Vol"></div></div>
+                                <div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock2Return">--</div></div>
+                                <div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock2Avg">--</div></div>
+                                <div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock2Max">--</div></div>
+                                <div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock2Vol">--</div></div>
                             </div>
                         </div>
+                        
                         <div class="correlation-box">
                             <div class="correlation-label">Correlation</div>
                             <div class="correlation-value" id="corrValue">--</div>
