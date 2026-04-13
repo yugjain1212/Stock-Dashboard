@@ -712,8 +712,8 @@ html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--b
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-const MOCK_MODE = false; // set true to run without backend
-const API = 'http://localhost:8000/api';
+const MOCK_MODE = false;
+const API = window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api';
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const MOCK_COMPANIES = [
