@@ -1,24 +1,35 @@
-import pandas as pd
+import numpy as np
+from typing import List, Dict, Any
 
 
-def compute_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
+def compute_metrics(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Compute metrics without pandas - pure Python/numpy"""
+    if not data:
+        return data
 
-    close_col = "Close" if "Close" in df.columns else "close"
-    open_col = "Open" if "Open" in df.columns else "open"
+    data = [d.copy() for d in data]
 
-    df["daily_return"] = (df[close_col] - df[open_col]) / df[open_col]
+    closes = np.array([d.get("close", d.get("Close", 0)) for d in data])
+    opens = np.array([d.get("open", d.get("Open", 0)) for d in data])
 
-    df["moving_avg_7d"] = df[close_col].rolling(window=7, min_periods=1).mean()
+    daily_returns = (closes - opens) / np.where(opens > 0, opens, 1)
 
-    df["week52_high"] = df[close_col].rolling(window=252, min_periods=1).max()
+    for i, d in enumerate(data):
+        d["daily_return"] = float(daily_returns[i])
 
-    df["week52_low"] = df[close_col].rolling(window=252, min_periods=1).min()
+        window_7 = max(0, i - 6)
+        d["moving_avg_7d"] = float(np.mean(closes[window_7 : i + 1])) if i >= 0 else 0
 
-    df["volatility_score"] = df["daily_return"].rolling(30, min_periods=1).std() * (
-        30**0.5
-    )
+        d["week52_high"] = float(np.max(closes[: i + 1])) if i > 0 else float(closes[i])
+        d["week52_low"] = float(np.min(closes[: i + 1])) if i > 0 else float(closes[i])
 
-    df = df.ffill()
+        if i >= 29:
+            window_30 = daily_returns[i - 29 : i + 1]
+            d["volatility_score"] = float(np.std(window_30) * np.sqrt(30))
+        else:
+            window_30 = daily_returns[: i + 1]
+            d["volatility_score"] = (
+                float(np.std(window_30) * np.sqrt(30)) if len(window_30) > 1 else 0.0
+            )
 
-    return df
+    return data

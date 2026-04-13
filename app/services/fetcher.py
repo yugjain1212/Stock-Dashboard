@@ -4,9 +4,8 @@ from sqlalchemy import and_
 from app.database import SessionLocal, engine, Base
 from app.models import StockPrice, Company
 from app.services.processor import compute_metrics
-import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 
@@ -77,7 +76,7 @@ def get_nse_quote(symbol: str) -> dict:
         return None
 
 
-def get_historical_data(symbol: str) -> pd.DataFrame:
+def get_historical_data(symbol: str) -> list:
     """Get historical data from NSE"""
     # Remove .NS suffix for API call
     nse_symbol = symbol.replace(".NS", "")
@@ -116,20 +115,17 @@ def get_historical_data(symbol: str) -> pd.DataFrame:
                             "volume": int(day.get("CH_TOT_TRADED_QTY", 0)),
                         }
                     )
-                df = pd.DataFrame(records)
-                df["date"] = pd.to_datetime(df["date"], dayfirst=True).dt.date
-                return df
+                return records
     except Exception as e:
         print(f"Historical data error for {symbol}: {e}")
     return None
 
 
-def generate_sample_data(symbol: str) -> pd.DataFrame:
+def generate_sample_data(symbol: str) -> list:
     """Generate realistic sample data when API fails"""
     print(f"Generating sample data for {symbol}...")
 
-    dates = pd.date_range(end=datetime.now(), periods=252, freq="B")
-    dates = [d.date() for d in dates]
+    dates = [(datetime.now() - timedelta(days=i)).date() for i in range(251, -1, -1)]
 
     np.random.seed(hash(symbol) % 2**32)
     base_price = 1000 + (hash(symbol) % 1000)
@@ -157,8 +153,7 @@ def generate_sample_data(symbol: str) -> pd.DataFrame:
             }
         )
 
-    df = pd.DataFrame(data)
-    return df
+    return data
 
 
 def fetch_live_quotes(db: Session) -> int:
@@ -226,17 +221,17 @@ def fetch_historical_data(db: Session) -> int:
     inserted = 0
 
     for symbol in SYMBOLS.keys():
-        df = get_historical_data(symbol)
+        data = get_historical_data(symbol)
 
-        if df is None or df.empty:
+        if data is None or len(data) == 0:
             print(f"No historical data for {symbol}, using sample")
-            df = generate_sample_data(symbol)
+            data = generate_sample_data(symbol)
         else:
-            print(f"Got {len(df)} days for {symbol}")
+            print(f"Got {len(data)} days for {symbol}")
 
-        df = compute_metrics(df)
+        data = compute_metrics(data)
 
-        for _, row in df.iterrows():
+        for row in data:
             existing = (
                 db.query(StockPrice)
                 .filter(
