@@ -7,15 +7,31 @@ from app.database import SessionLocal, engine, Base
 from app.models import StockPrice, Company
 from app.routes import companies, data, summary, compare
 from app.schemas import HealthResponse
+from app.services.fetcher import fetch_all_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    print("Database ready.")
+
+    db = SessionLocal()
+    try:
+        record_count = db.query(StockPrice).count()
+        print(f"Current records: {record_count}")
+
+        if record_count == 0:
+            print("No data found. Fetching stock data...")
+            fetch_all_data()
+        else:
+            print("Data already exists, skipping fetch.")
+    except Exception as e:
+        print(f"Error checking data: {e}")
+    finally:
+        db.close()
+
     print("App ready.")
     yield
-    print("Shutting down...")
-
     print("Shutting down...")
 
 
