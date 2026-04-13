@@ -3,888 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockIQ - Indian Stock Market Dashboard</title>
+    <title>StockIQ - Stock Market Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --white: #ffffff;
             --bg-primary: #f8fafc;
             --bg-secondary: #f1f5f9;
-            --bg-card: #ffffff;
-            --bg-card-hover: #f8fafc;
             --accent-primary: #4f46e5;
-            --accent-primary-light: #6366f1;
-            --accent-primary-lighter: #818cf8;
             --accent-success: #10b981;
-            --accent-success-light: #d1fae5;
             --accent-danger: #ef4444;
-            --accent-danger-light: #fee2e2;
-            --accent-warning: #f59e0b;
-            --accent-warning-light: #fef3c7;
             --text-primary: #1e293b;
             --text-secondary: #64748b;
-            --text-muted: #94a3b8;
             --border: #e2e8f0;
-            --border-light: #f1f5f9;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 14px;
-            --radius-xl: 20px;
-            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: var(--font-sans);
-            background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 50%, #e8edf3 100%);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-
-        .app {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: 100vh;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            background: var(--white);
-            border-right: 1px solid var(--border);
-            padding: 24px 20px;
-            overflow-y: auto;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 28px;
-            padding: 0 4px;
-        }
-
-        .logo-icon {
-            width: 38px;
-            height: 38px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-light));
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-        }
-
-        .logo-text {
-            font-size: 22px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .sidebar-title {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 14px;
-            padding: 0 4px;
-        }
-
-        .stock-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .stock-card {
-            background: var(--bg-secondary);
-            border: 1px solid transparent;
-            border-radius: var(--radius-md);
-            padding: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .stock-card:hover {
-            background: var(--white);
-            border-color: var(--border);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stock-card.active {
-            background: var(--white);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
-
-        .stock-symbol {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 2px;
-        }
-
-        .stock-name {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        .stock-price {
-            font-size: 17px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .stock-change {
-            font-size: 12px;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-        }
-
-        .stock-change.up {
-            background: var(--accent-success-light);
-            color: #059669;
-        }
-
-        .stock-change.down {
-            background: var(--accent-danger-light);
-            color: #dc2626;
-        }
-
-        /* Main Content */
-        .main {
-            padding: 24px 28px;
-            overflow-y: auto;
-            background: linear-gradient(180deg, transparent 0%, rgba(79, 70, 229, 0.02) 100%);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .header-left h1 {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .header-left p {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .live-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--accent-success-light);
-            padding: 8px 14px;
-            border-radius: var(--radius-xl);
-            font-size: 13px;
-            font-weight: 600;
-            color: #059669;
-        }
-
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--accent-success);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Stats Row */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .stat-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .stat-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .stat-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .stat-icon.high { background: var(--accent-success-light); color: #059669; }
-        .stat-icon.low { background: var(--accent-danger-light); color: #dc2626; }
-        .stat-icon.avg { background: #e0e7ff; color: var(--accent-primary); }
-        .stat-icon.vol { background: var(--accent-warning-light); color: #d97706; }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        /* Chart */
-        .chart-section {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .chart-title-group {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .chart-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .chart-current {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--accent-primary);
-        }
-
-        .time-filters {
-            display: flex;
-            gap: 6px;
-            background: var(--bg-secondary);
-            padding: 4px;
-            border-radius: var(--radius-md);
-        }
-
-        .time-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 8px 14px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .time-btn:hover { color: var(--text-primary); }
-        .time-btn.active {
-            background: var(--white);
-            color: var(--accent-primary);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .chart-container {
-            height: 300px;
-            position: relative;
-        }
-
-        /* Bottom Grid */
-        .bottom-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        .panel {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .panel-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 20px;
-        }
-
-        .compare-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .compare-select {
-            flex: 1;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            padding: 12px 14px;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .compare-select:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
-
-        .vs-text {
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 13px;
-        }
-
-        .compare-btn {
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-light));
-            border: none;
-            color: white;
-            padding: 12px 20px;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .compare-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
-        }
-
-        .compare-results {
-            display: none;
-        }
-
-        .compare-results.show { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-        .compare-stock {
-            background: var(--bg-secondary);
-            border-radius: var(--radius-md);
-            padding: 16px;
-        }
-
-        .compare-stock-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .compare-stock-name {
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        .trophy { color: var(--accent-warning); }
-
-        .compare-stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .compare-stat-label {
-            font-size: 10px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .compare-stat-value {
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 2px;
-        }
-
-        .correlation-box {
-            grid-column: 1 / -1;
-            background: var(--bg-secondary);
-            border-radius: var(--radius-md);
-            padding: 14px;
-            text-align: center;
-            margin-top: 12px;
-        }
-
-        .correlation-label {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .correlation-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--accent-primary);
-        }
-
-        /* Performance */
-        .perf-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .perf-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: var(--bg-secondary);
-            border-radius: var(--radius-md);
-            transition: all 0.2s ease;
-        }
-
-        .perf-item:hover {
-            background: var(--bg-card-hover);
-        }
-
-        .rank-badge {
-            width: 26px;
-            height: 26px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .rank-badge.gainers { background: var(--accent-success-light); color: #059669; }
-        .rank-badge.losers { background: var(--accent-danger-light); color: #dc2626; }
-
-        .perf-info { flex: 1; }
-
-        .perf-symbol {
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .perf-name {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .perf-change {
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        /* Loading */
-        .skeleton {
-            background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--border) 50%, var(--bg-secondary) 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            border-radius: var(--radius-sm);
-        }
-
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        .skeleton-card { height: 85px; }
-        .skeleton-stat { height: 100px; }
-        .skeleton-chart { height: 300px; }
-        .skeleton-list { height: 52px; }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--accent-danger);
-            color: white;
-            padding: 14px 24px;
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            font-weight: 500;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-
-        .toast.show { opacity: 1; transform: translateY(0); }
-
-        .hidden { display: none !important; }
-
-        @media (max-width: 1200px) {
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-            .bottom-grid { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 900px) {
-            .app { grid-template-columns: 1fr; }
-            .sidebar { display: none; }
-        }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%); color: var(--text-primary); min-height: 100vh; }
+        
+        .header { background: var(--white); padding: 20px 40px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .logo-icon svg { width: 24px; height: 24px; }
+        .logo-text { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .badge { background: #d1fae5; color: #059669; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        
+        .hero { padding: 60px 40px; text-align: center; }
+        .hero h1 { font-size: 48px; font-weight: 700; margin-bottom: 16px; }
+        .hero p { font-size: 18px; color: var(--text-secondary); max-width: 600px; margin: 0 auto 30px; }
+        
+        .demo-section { background: var(--white); margin: 0 40px 40px; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .demo-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+        
+        .stocks-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .stock-card { background: var(--bg-secondary); padding: 20px; border-radius: 12px; transition: transform 0.2s; }
+        .stock-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .stock-symbol { font-size: 16px; font-weight: 700; }
+        .stock-name { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+        .stock-price { font-size: 24px; font-weight: 700; }
+        .stock-change { font-size: 14px; font-weight: 600; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; }
+        .stock-change.up { background: #d1fae5; color: #059669; }
+        .stock-change.down { background: #fee2e2; color: #dc2626; }
+        
+        .cta { background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; padding: 16px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; text-decoration: none; display: inline-block; margin-top: 20px; }
+        
+        .features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; }
+        .feature { text-align: center; }
+        .feature-icon { width: 48px; height: 48px; background: #e0e7ff; border-radius: 12px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; }
+        .feature h3 { font-size: 14px; margin-bottom: 6px; }
+        .feature p { font-size: 12px; color: var(--text-secondary); }
+        
+        .footer { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 14px; }
     </style>
 </head>
 <body>
-    <div class="app">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                    </svg>
-                </div>
-                <span class="logo-text">StockIQ</span>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             </div>
-            
-            <div class="sidebar-title">NSE Stocks</div>
-            <div class="stock-list" id="stockList">
-                <div class="skeleton skeleton-card"></div>
-                <div class="skeleton skeleton-card"></div>
-                <div class="skeleton skeleton-card"></div>
-                <div class="skeleton skeleton-card"></div>
-                <div class="skeleton skeleton-card"></div>
+            <span class="logo-text">StockIQ</span>
+        </div>
+        <span class="badge">Live Demo</span>
+    </header>
+    
+    <section class="hero">
+        <h1>Stock Market Dashboard</h1>
+        <p>A real-time financial data intelligence platform for NSE/BSE Indian stock market with live prices, interactive charts, and stock comparison.</p>
+        <a href="https://github.com/yugjain1212/Stock-Dashboard" target="_blank" class="cta">View on GitHub</a>
+    </section>
+    
+    <section class="demo-section">
+        <h2 class="demo-title">📊 Live NSE Stock Prices (Demo)</h2>
+        <div class="stocks-grid">
+            <div class="stock-card">
+                <div class="stock-symbol">TCS</div>
+                <div class="stock-name">Tata Consultancy Services</div>
+                <div class="stock-price">₹2,470.70</div>
+                <span class="stock-change up">+0.85%</span>
             </div>
-        </aside>
-
-        <!-- Main -->
-        <main class="main">
-            <div class="header">
-                <div class="header-left">
-                    <h1>Stock Dashboard</h1>
-                    <p id="currentDate"></p>
-                </div>
-                <div class="header-right">
-                    <div class="live-badge">
-                        <span class="live-dot"></span>
-                        Live Data
-                    </div>
-                </div>
+            <div class="stock-card">
+                <div class="stock-symbol">INFY</div>
+                <div class="stock-name">Infosys Ltd</div>
+                <div class="stock-price">₹1,276.00</div>
+                <span class="stock-change up">+1.25%</span>
             </div>
-
-            <!-- Stats -->
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">52W High</span>
-                        <span class="stat-icon high">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="m21 15-6-6-6 6"/>
-                            </svg>
-                        </span>
-                    </div>
-                    <div class="stat-value skeleton skeleton-stat" id="statHigh">--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">52W Low</span>
-                        <span class="stat-icon low">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="m21 9-6 6-6-6"/>
-                            </svg>
-                        </span>
-                    </div>
-                    <div class="stat-value skeleton skeleton-stat" id="statLow">--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">Avg Close</span>
-                        <span class="stat-icon avg">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-                            </svg>
-                        </span>
-                    </div>
-                    <div class="stat-value skeleton skeleton-stat" id="statAvg">--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span class="stat-label">Volatility</span>
-                        <span class="stat-icon vol">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2v4m0 12v4M4 12h4m12 0h4"/>
-                            </svg>
-                        </span>
-                    </div>
-                    <div class="stat-value skeleton skeleton-stat" id="statVol">--</div>
-                </div>
+            <div class="stock-card">
+                <div class="stock-symbol">RELIANCE</div>
+                <div class="stock-name">Reliance Industries</div>
+                <div class="stock-price">₹1,314.00</div>
+                <span class="stock-change down">-0.45%</span>
             </div>
-
-            <!-- Chart -->
-            <div class="chart-section">
-                <div class="chart-header">
-                    <div class="chart-title-group">
-                        <span class="chart-title" id="chartTitle">Select a stock</span>
-                        <span class="chart-current" id="chartPrice"></span>
-                    </div>
-                    <div class="time-filters">
-                        <button class="time-btn" data-days="7">1W</button>
-                        <button class="time-btn active" data-days="30">1M</button>
-                        <button class="time-btn" data-days="90">3M</button>
-                        <button class="time-btn" data-days="180">6M</button>
-                        <button class="time-btn" data-days="365">1Y</button>
-                    </div>
-                </div>
-                <div class="chart-container" id="chartContainer">
-                    <div class="skeleton skeleton-chart"></div>
-                </div>
+            <div class="stock-card">
+                <div class="stock-symbol">HDFCBANK</div>
+                <div class="stock-name">HDFC Bank</div>
+                <div class="stock-price">₹793.00</div>
+                <span class="stock-change up">+0.32%</span>
             </div>
-
-            <!-- Bottom -->
-            <div class="bottom-grid">
-                <!-- Compare -->
-                <div class="panel">
-                    <div class="panel-title">Compare Stocks</div>
-                    <div class="compare-controls">
-                        <a href="/api/compare?symbol1=TCS.NS&symbol2=INFY.NS&days=30" target="_blank" class="compare-btn" style="display:inline-block;text-decoration:none;">TCS vs INFY</a>
-                        <a href="/api/compare?symbol1=TCS.NS&symbol2=RELIANCE.NS&days=30" target="_blank" class="compare-btn" style="display:inline-block;text-decoration:none;">TCS vs RELIANCE</a>
-                        <a href="/api/compare?symbol1=INFY.NS&symbol2=RELIANCE.NS&days=30" target="_blank" class="compare-btn" style="display:inline-block;text-decoration:none;">INFY vs RELIANCE</a>
-                    </div>
-                    
-                    <div style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-top: 15px;">
-                        <p style="color: var(--text-muted); font-size: 12px;">🔗 Click above to see comparison in new tab, or manually enter URLs:</p>
-                        <code style="background: var(--bg-dark); padding: 8px; border-radius: 4px; font-size: 11px; word-break: break-all;">/api/compare?symbol1=TCS.NS&symbol2=INFY.NS</code>
-                    </div>
-                </div>
-
-                <!-- Gainers -->
-                <div class="panel">
-                    <div class="panel-title">Top Gainers</div>
-                    <div class="perf-list" id="gainersList">
-                        <div class="skeleton skeleton-list"></div>
-                        <div class="skeleton skeleton-list"></div>
-                        <div class="skeleton skeleton-list"></div>
-                    </div>
-                </div>
+            <div class="stock-card">
+                <div class="stock-symbol">ICICI</div>
+                <div class="stock-name">ICICI Bank</div>
+                <div class="stock-price">₹1,347.00</div>
+                <span class="stock-change down">-0.18%</span>
             </div>
-        </main>
-    </div>
-
-    <div class="toast" id="toast"></div>
-
-    <script>
-        let companies = [];
-        let selectedSymbol = null;
-        let chart = null;
-        let days = 30;
-        const API = '/api';
-
-        const fmtPrice = (p) => p == null ? '--' : '₹' + p.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        const fmtRet = (r) => r == null ? '--' : (r >= 0 ? '+' : '') + (r * 100).toFixed(2) + '%';
-        const fmtNum = (n, d = 2) => n == null ? '--' : n.toFixed(d);
-        const fmtDate = (d) => new Date(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'short'});
-
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 4000);
-        }
-
-        async function loadCompanies() {
-            try {
-                companies = await fetch(API + '/companies/').then(r => r.json());
-                renderStockList();
-                updateCompareSelects();
-                if (companies.length) selectStock(companies[0].symbol);
-                renderGainers();
-            } catch (e) {
-                showToast('Failed to load data');
-            }
-        }
-
-        function renderStockList() {
-            const list = document.getElementById('stockList');
-            list.innerHTML = companies.map((c, i) => {
-                const up = (c.latest_daily_return || 0) >= 0;
-                return `
-                    <div class="stock-card" data-symbol="${c.symbol}">
-                        <div class="stock-symbol">${c.symbol.replace('.NS', '').replace('^', '')}</div>
-                        <div class="stock-name">${c.name}</div>
-                        <div class="stock-price">${fmtPrice(c.latest_close)}</div>
-                        <span class="stock-change ${up ? 'up' : 'down'}">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                <path d="${up ? 'm21 15-6-6-6 6' : 'm21 9-6 6-6-6'}"/>
-                            </svg>
-                            ${fmtRet(c.latest_daily_return)}
-                        </span>
-                    </div>
-                `;
-            }).join('');
-            document.querySelectorAll('.stock-card').forEach(el => {
-                el.addEventListener('click', () => selectStock(el.dataset.symbol));
-            });
-        }
-
-        async function selectStock(symbol) {
-            selectedSymbol = symbol;
-            document.querySelectorAll('.stock-card').forEach(el => el.classList.toggle('active', el.dataset.symbol === symbol));
-            const c = companies.find(x => x.symbol === symbol);
-            document.getElementById('chartTitle').textContent = c?.name || symbol;
-            document.getElementById('chartPrice').textContent = c ? fmtPrice(c.latest_close) : '';
-            await Promise.all([loadChart(symbol, days), loadStats(symbol)]);
-        }
-
-        async function loadChart(symbol, d) {
-            try {
-                const res = await fetch(API + '/data/' + symbol + '?days=' + d);
-                const data = await res.json();
-                renderChart(data.data);
-            } catch (e) { showToast('Chart failed'); }
-        }
-
-        function renderChart(prices) {
-            document.getElementById('chartContainer').innerHTML = '<canvas id="chart"></canvas>';
-            const ctx = document.getElementById('chart').getContext('2d');
-            if (chart) chart.destroy();
-
-            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
-            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: prices.map(p => fmtDate(p.date)),
-                    datasets: [{
-                        data: prices.map(p => p.close),
-                        borderColor: '#4f46e5',
-                        backgroundColor: gradient,
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2.5,
-                        pointRadius: 0,
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: '#4f46e5',
-                        pointHoverBorderColor: '#fff',
-                        pointHoverBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { intersect: false, mode: 'index' },
-                    plugins: { legend: { display: false }, tooltip: {
-                        backgroundColor: '#fff',
-                        titleColor: '#64748b',
-                        bodyColor: '#1e293b',
-                        borderColor: '#e2e8f0',
-                        borderWidth: 1,
-                        padding: 12,
-                        displayColors: false,
-                        callbacks: {
-                            title: (i) => i[0].label,
-                            label: (i) => '₹' + i.raw.toLocaleString('en-IN', {minimumFractionDigits: 2})
-                        }
-                    }},
-                    scales: {
-                        x: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', maxTicksLimit: 8 } },
-                        y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', callback: (v) => '₹' + v } }
-                    }
-                }
-            });
-        }
-
-        async function loadStats(symbol) {
-            try {
-                const res = await fetch(API + '/summary/' + symbol);
-                const data = await res.json();
-                document.getElementById('statHigh').textContent = fmtPrice(data.week52_high);
-                document.getElementById('statLow').textContent = fmtPrice(data.week52_low);
-                document.getElementById('statAvg').textContent = fmtPrice(data.avg_close);
-                document.getElementById('statVol').textContent = fmtNum(data.avg_volatility_score, 4);
-                document.querySelectorAll('.stat-value').forEach(el => el.classList.remove('skeleton', 'skeleton-stat'));
-            } catch (e) { console.error(e); }
-        }
-
-        function updateCompareSelects() {
-            const options = companies.map(c => `<option value="${c.symbol}">${c.symbol.replace('.NS', '')} - ${c.name}</option>`).join('');
-            document.getElementById('compare1').innerHTML = '<option value="">Select</option>' + options;
-            document.getElementById('compare2').innerHTML = '<option value="">Select</option>' + options;
-        }
-
-        
-
-        async function renderGainers() {
-            const sorted = [...companies].sort((a, b) => (b.latest_daily_return || 0) - (a.latest_daily_return || 0));
-            const gainers = sorted.filter(c => (c.latest_daily_return || 0) > 0).slice(0, 5);
-            const list = document.getElementById('gainersList');
-            list.innerHTML = gainers.map((c, i) => `
-                <div class="perf-item">
-                    <span class="rank-badge gainers">${i + 1}</span>
-                    <div class="perf-info">
-                        <div class="perf-symbol">${c.symbol.replace('.NS', '')}</div>
-                        <div class="perf-name">${c.name}</div>
-                    </div>
-                    <span class="perf-change" style="color: #10b981">${fmtRet(c.latest_daily_return)}</span>
-                </div>
-            `).join('');
-        }
-
-        document.querySelectorAll('.time-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                days = parseInt(btn.dataset.days);
-                if (selectedSymbol) await loadChart(selectedSymbol, days);
-            });
-        });
-
-        document.getElementById('compareBtn').addEventListener('click', loadCompare);
-        loadCompanies();
-    </script>
+            <div class="stock-card">
+                <div class="stock-symbol">BAJFINANCE</div>
+                <div class="stock-name">Bajaj Finance</div>
+                <div class="stock-price">₹897.05</div>
+                <span class="stock-change up">+2.15%</span>
+            </div>
+        </div>
+    </section>
+    
+    <section class="features">
+        <div class="feature">
+            <div class="feature-icon">📈</div>
+            <h3>Live Data</h3>
+            <p>Real-time NSE prices</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📊</div>
+            <h3>Charts</h3>
+            <p>Interactive visualization</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">⚖️</div>
+            <h3>Compare</h3>
+            <p>Stock comparison</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📉</div>
+            <h3>Analytics</h3>
+            <p>Volatility & returns</p>
+        </div>
+    </section>
+    
+    <footer class="footer">
+        <p>StockIQ Dashboard - Built with FastAPI, Chart.js, and NSE India API</p>
+        <p style="margin-top:8px;">GitHub: <a href="https://github.com/yugjain1212/Stock-Dashboard" style="color:#4f46e5;">https://github.com/yugjain1212/Stock-Dashboard</a></p>
+    </footer>
 </body>
 </html>
