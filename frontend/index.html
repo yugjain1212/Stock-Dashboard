@@ -687,18 +687,14 @@
                 <div class="panel">
                     <div class="panel-title">Compare Stocks</div>
                     <div class="compare-controls">
-                        <button class="compare-btn" onclick="doCompare('TCS.NS', 'INFY.NS')">TCS vs INFY</button>
-                        <button class="compare-btn" onclick="doCompare('TCS.NS', 'RELIANCE.NS')">TCS vs RELIANCE</button>
-                        <button class="compare-btn" onclick="doCompare('INFY.NS', 'RELIANCE.NS')">INFY vs RELIANCE</button>
+                        <a href="/api/compare?symbol1=TCS.NS&symbol2=INFY.NS&days=30" target="_blank" class="compare-btn" style="display:inline-block;text-decoration:none;">TCS vs INFY</a>
+                        <a href="/api/compare?symbol1=TCS.NS&symbol2=RELIANCE.NS&days=30" target="_blank" class="compare-btn" style="display:inline-block;text-decoration:none;">TCS vs RELIANCE</a>
+                        <a href="/api/compare?symbol1=INFY.NS&symbol2=RELIANCE.NS&days=30" target="_blank" class="compare-btn" style="display:inline-block;text-decoration:none;">INFY vs RELIANCE</a>
                     </div>
                     
-                    <div id="compareResult" style="background: var(--bg-secondary); padding: 20px; border-radius: 10px; margin-top: 15px; display: none;">
-                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">📊 Comparison Results</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div id="stock1Box"></div>
-                            <div id="stock2Box"></div>
-                        </div>
-                        <div id="corrBox" style="text-align: center; padding: 15px; margin-top: 15px; background: var(--white); border-radius: 8px;"></div>
+                    <div style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                        <p style="color: var(--text-muted); font-size: 12px;">🔗 Click above to see comparison in new tab, or manually enter URLs:</p>
+                        <code style="background: var(--bg-dark); padding: 8px; border-radius: 4px; font-size: 11px; word-break: break-all;">/api/compare?symbol1=TCS.NS&symbol2=INFY.NS</code>
                     </div>
                 </div>
 
@@ -860,24 +856,7 @@
             document.getElementById('compare2').innerHTML = '<option value="">Select</option>' + options;
         }
 
-        async function doCompare(s1, s2) {
-            try {
-                const res = await fetch(API + '/compare?symbol1=' + s1 + '&symbol2=' + s2 + '&days=30');
-                const d = await res.json();
-                const box = document.getElementById('compareResult');
-                box.style.display = 'block';
-                
-                const s1Data = d.symbol1_stats;
-                const s2Data = d.symbol2_stats;
-                const better = d.better_performer;
-                
-                document.getElementById('stock1Box').innerHTML = '<h4 style="color: var(--accent-primary); margin-bottom: 10px;">' + s1.replace('.NS', '') + (s1 === better ? ' 🏆 WINNER' : '') + '</h4><p>Return: <strong style="color:' + (s1Data.total_return_pct >= 0 ? '#10b981' : '#ef4444') + ';">' + fmtRet(s1Data.total_return_pct/100) + '</strong></p><p>Avg Price: ₹' + s1Data.avg_close.toFixed(2) + '</p><p>Max: ₹' + s1Data.max_close.toFixed(2) + '</p><p>Volatility: ' + s1Data.avg_volatility.toFixed(4) + '</p>';
-                
-                document.getElementById('stock2Box').innerHTML = '<h4 style="color: var(--accent-primary); margin-bottom: 10px;">' + s2.replace('.NS', '') + (s2 === better ? ' 🏆 WINNER' : '') + '</h4><p>Return: <strong style="color:' + (s2Data.total_return_pct >= 0 ? '#10b981' : '#ef4444') + ';">' + fmtRet(s2Data.total_return_pct/100) + '</strong></p><p>Avg Price: ₹' + s2Data.avg_close.toFixed(2) + '</p><p>Max: ₹' + s2Data.max_close.toFixed(2) + '</p><p>Volatility: ' + s2Data.avg_volatility.toFixed(4) + '</p>';
-                
-                document.getElementById('corrBox').innerHTML = '<p>Correlation: <strong>' + d.correlation.toFixed(4) + '</strong> (' + (Math.abs(d.correlation) > 0.7 ? 'Highly Correlated' : 'Weak Correlation') + ')</p>';
-            } catch (e) { showToast('Error: ' + e.message); }
-        }
+        
 
         async function renderGainers() {
             const sorted = [...companies].sort((a, b) => (b.latest_daily_return || 0) - (a.latest_daily_return || 0));
