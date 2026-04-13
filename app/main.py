@@ -12,21 +12,9 @@ from app.schemas import HealthResponse
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
-
-    db = SessionLocal()
-    try:
-        count = db.query(StockPrice).count()
-        if count == 0:
-            print("Database empty. Running fetcher...")
-            from app.services.fetcher import fetch_all_data
-
-            fetch_all_data()
-        else:
-            print(f"Database already has {count} records. Skipping fetch.")
-    finally:
-        db.close()
-
+    print("App ready.")
     yield
+    print("Shutting down...")
 
     print("Shutting down...")
 
