@@ -1,4 +1,4 @@
-import yfinance as yf
+import requests
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from app.database import SessionLocal, engine, Base
@@ -10,6 +10,7 @@ from datetime import datetime
 import time
 
 
+# NSE India stock symbols (with .NS for compatibility)
 SYMBOLS = {
     "TCS.NS": ("TCS", "Information Technology", "Large Cap"),
     "INFY.NS": ("Infosys", "Information Technology", "Large Cap"),
@@ -20,21 +21,10 @@ SYMBOLS = {
     "BAJFINANCE.NS": ("Bajaj Finance", "Financial Services", "Large Cap"),
     "TATAMOTORS.NS": ("Tata Motors", "Automobile", "Large Cap"),
     "ADANIENT.NS": ("Adani Enterprises", "Conglomerate", "Mid Cap"),
-    "^NSEI": ("NIFTY 50", "Index", "Large Cap"),
 }
 
-BASE_PRICES = {
-    "TCS.NS": 4200.0,
-    "INFY.NS": 1800.0,
-    "RELIANCE.NS": 2950.0,
-    "HDFCBANK.NS": 1680.0,
-    "WIPRO.NS": 580.0,
-    "ICICIBANK.NS": 980.0,
-    "BAJFINANCE.NS": 7200.0,
-    "TATAMOTORS.NS": 980.0,
-    "ADANIENT.NS": 2850.0,
-    "^NSEI": 22500.0,
-}
+# NSE India API for live quotes
+BASE_URL = "https://www.nseindia.com/api"
 
 
 def init_db():
@@ -42,29 +32,108 @@ def init_db():
     print("Database tables created/verified.")
 
 
-def fetch_from_yfinance(symbol: str) -> pd.DataFrame:
+def get_nse_quote(symbol: str) -> dict:
+    """Fetch live quote from NSE India"""
+    # Remove .NS suffix for API call
+    nse_symbol = symbol.replace(".NS", "")
     try:
-        df = yf.download(symbol, period="1y", progress=False)
-        if df.empty:
-            return None
-        df = df.reset_index()
-        df.columns = ["date", "open", "high", "low", "close", "adj_close", "volume"]
-        df = df.drop(columns=["adj_close"])
-        df["date"] = pd.to_datetime(df["date"]).dt.date
-        return df
+        session = requests.Session()
+        session.get(
+            "https://www.nseindia.com",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            },
+        )
+
+        url = f"{BASE_URL}/quote-equity?symbol={nse_symbol}"
+        response = session.get(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "application/json",
+            },
+            timeout=10,
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            info = data.get("info", {})
+            priceInfo = data.get("priceInfo", {})
+
+            return {
+                "symbol": symbol,
+                "name": info.get("companyName", symbol),
+                "open": float(priceInfo.get("open", 0)),
+                "high": float(priceInfo.get("intraDayHigh", 0)),
+                "low": float(priceInfo.get("intraDayLow", 0)),
+                "close": float(priceInfo.get("lastPrice", 0)),
+                "volume": int(priceInfo.get("total traded volume", 0)),
+                "previous_close": float(priceInfo.get("previousClose", 0)),
+                "day_change": float(priceInfo.get("change", 0)),
+                "day_change_pct": float(priceInfo.get("pchange", 0)),
+            }
     except Exception as e:
-        print(f"yfinance error: {e}")
+        print(f"NSE API error for {symbol}: {e}")
         return None
 
 
-def generate_sample_data(symbol: str, base_price: float) -> pd.DataFrame:
+def get_historical_data(symbol: str) -> pd.DataFrame:
+    """Get historical data from NSE"""
+    # Remove .NS suffix for API call
+    nse_symbol = symbol.replace(".NS", "")
+    try:
+        session = requests.Session()
+        session.get(
+            "https://www.nseindia.com",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            },
+        )
+
+        # Get last 30 days historical data
+        url = f"{BASE_URL}/historical-equitySymbols?symbol={nse_symbol}&fromdate=01-01-2025&todate=13-04-2026"
+        response = session.get(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "application/json",
+            },
+            timeout=15,
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            if "data" in data:
+                records = []
+                for day in data["data"]:
+                    records.append(
+                        {
+                            "date": day.get("CH_TIMESTAMP", datetime.now().date()),
+                            "open": float(day.get("CH_OPENING_PRICE", 0)),
+                            "high": float(day.get("CH_INTRADAY_HIGH", 0)),
+                            "low": float(day.get("CH_INTRADAY_LOW", 0)),
+                            "close": float(day.get("CH_CLOSING_PRICE", 0)),
+                            "volume": int(day.get("CH_TOT_TRADED_QTY", 0)),
+                        }
+                    )
+                df = pd.DataFrame(records)
+                df["date"] = pd.to_datetime(df["date"], dayfirst=True).dt.date
+                return df
+    except Exception as e:
+        print(f"Historical data error for {symbol}: {e}")
+    return None
+
+
+def generate_sample_data(symbol: str) -> pd.DataFrame:
+    """Generate realistic sample data when API fails"""
     print(f"Generating sample data for {symbol}...")
 
     dates = pd.date_range(end=datetime.now(), periods=252, freq="B")
     dates = [d.date() for d in dates]
 
     np.random.seed(hash(symbol) % 2**32)
-    returns = np.random.normal(0.0003, 0.012, len(dates))
+    base_price = 1000 + (hash(symbol) % 1000)
+    returns = np.random.normal(0.0003, 0.015, len(dates))
 
     prices = [base_price]
     for i in range(1, len(dates)):
@@ -73,7 +142,7 @@ def generate_sample_data(symbol: str, base_price: float) -> pd.DataFrame:
     data = []
     for i, d in enumerate(dates):
         close = prices[i]
-        open_p = close * (1 + np.random.uniform(-0.008, 0.008))
+        open_p = close * (1 + np.random.uniform(-0.005, 0.005))
         high_p = max(open_p, close) * (1 + abs(np.random.uniform(0, 0.01)))
         low_p = min(open_p, close) * (1 - abs(np.random.uniform(0, 0.01)))
 
@@ -84,7 +153,7 @@ def generate_sample_data(symbol: str, base_price: float) -> pd.DataFrame:
                 "high": high_p,
                 "low": low_p,
                 "close": close,
-                "volume": int(np.random.uniform(500000, 5000000)),
+                "volume": int(np.random.uniform(100000, 2000000)),
             }
         )
 
@@ -92,82 +161,129 @@ def generate_sample_data(symbol: str, base_price: float) -> pd.DataFrame:
     return df
 
 
-def fetch_symbol_data(symbol: str, db: Session) -> int:
-    print(f"Fetching data for {symbol}...")
-
-    df = fetch_from_yfinance(symbol)
-
-    if df is None or df.empty:
-        print(f"yfinance failed, generating sample data for {symbol}")
-        df = generate_sample_data(symbol, BASE_PRICES.get(symbol, 1000.0))
-
-    df = compute_metrics(df)
-
+def fetch_live_quotes(db: Session) -> int:
+    """Fetch live quotes for all stocks"""
     inserted = 0
-    for _, row in df.iterrows():
-        existing = (
-            db.query(StockPrice)
-            .filter(and_(StockPrice.symbol == symbol, StockPrice.date == row["date"]))
-            .first()
-        )
 
-        if existing:
-            continue
-
-        try:
-            price = StockPrice(
+    for symbol, (name, sector, cap_category) in SYMBOLS.items():
+        # Check if company exists
+        existing = db.query(Company).filter(Company.symbol == symbol).first()
+        if not existing:
+            company = Company(
                 symbol=symbol,
-                date=row["date"],
-                open=row["open"],
-                high=row["high"],
-                low=row["low"],
-                close=row["close"],
-                volume=int(row["volume"]),
-                daily_return=row["daily_return"],
-                moving_avg_7d=row["moving_avg_7d"],
-                week52_high=row["week52_high"],
-                week52_low=row["week52_low"],
-                volatility_score=row["volatility_score"],
+                name=name,
+                sector=sector,
+                market_cap_category=cap_category,
             )
-            db.add(price)
-            inserted += 1
-        except Exception as e:
-            print(f"Error adding row: {e}")
-            continue
+            db.add(company)
+            print(f"Added company: {name}")
+
+        # Get live quote
+        quote = get_nse_quote(symbol)
+
+        if quote:
+            # Store today's data
+            today = datetime.now().date()
+            existing = (
+                db.query(StockPrice)
+                .filter(and_(StockPrice.symbol == symbol, StockPrice.date == today))
+                .first()
+            )
+
+            if not existing:
+                daily_return = (
+                    (quote["close"] - quote["open"]) / quote["open"]
+                    if quote["open"] > 0
+                    else 0
+                )
+
+                price = StockPrice(
+                    symbol=symbol,
+                    date=today,
+                    open=quote["open"],
+                    high=quote["high"],
+                    low=quote["low"],
+                    close=quote["close"],
+                    volume=quote["volume"],
+                    daily_return=daily_return,
+                )
+                db.add(price)
+                inserted += 1
+                print(f"{symbol}: ₹{quote['close']} ({quote['day_change_pct']:+.2f}%)")
+            else:
+                print(f"{symbol}: Already up to date")
+        else:
+            print(f"Failed to get live data for {symbol}")
+
+        time.sleep(1)
 
     db.commit()
-    print(f"Inserted {inserted} new records for {symbol}")
+    return inserted
+
+
+def fetch_historical_data(db: Session) -> int:
+    """Fetch historical data for all stocks"""
+    inserted = 0
+
+    for symbol in SYMBOLS.keys():
+        df = get_historical_data(symbol)
+
+        if df is None or df.empty:
+            print(f"No historical data for {symbol}, using sample")
+            df = generate_sample_data(symbol)
+        else:
+            print(f"Got {len(df)} days for {symbol}")
+
+        df = compute_metrics(df)
+
+        for _, row in df.iterrows():
+            existing = (
+                db.query(StockPrice)
+                .filter(
+                    and_(StockPrice.symbol == symbol, StockPrice.date == row["date"])
+                )
+                .first()
+            )
+
+            if not existing:
+                price = StockPrice(
+                    symbol=symbol,
+                    date=row["date"],
+                    open=row["open"],
+                    high=row["high"],
+                    low=row["low"],
+                    close=row["close"],
+                    volume=int(row["volume"]),
+                    daily_return=row["daily_return"],
+                    moving_avg_7d=row["moving_avg_7d"],
+                    week52_high=row["week52_high"],
+                    week52_low=row["week52_low"],
+                    volatility_score=row["volatility_score"],
+                )
+                db.add(price)
+                inserted += 1
+
+        time.sleep(0.5)
+
+    db.commit()
     return inserted
 
 
 def fetch_all_data():
+    """Main function to fetch all data"""
     init_db()
 
     db = SessionLocal()
     try:
-        for symbol, (name, sector, cap_category) in SYMBOLS.items():
-            existing_company = (
-                db.query(Company).filter(Company.symbol == symbol).first()
-            )
-            if not existing_company:
-                company = Company(
-                    symbol=symbol,
-                    name=name,
-                    sector=sector,
-                    market_cap_category=cap_category,
-                )
-                db.add(company)
-                print(f"Added company: {name} ({symbol})")
+        # First try to get live quotes
+        print("\n=== Fetching Live NSE Data ===")
+        live_count = fetch_live_quotes(db)
+        print(f"Inserted {live_count} live records")
 
-        db.commit()
-
-        total_inserted = 0
-        for symbol in SYMBOLS.keys():
-            inserted = fetch_symbol_data(symbol, db)
-            total_inserted += inserted
-            time.sleep(0.3)
-
-        print(f"\nTotal new records inserted: {total_inserted}")
+        # Then get historical data for charts
+        print("\n=== Fetching Historical Data ===")
+        hist_count = fetch_historical_data(db)
+        print(f"Inserted {hist_count} historical records")
 
     finally:
         db.close()
