@@ -16,13 +16,13 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         count = db.query(StockPrice).count()
+        if count == 0:
+            print("Database empty. Running fetcher...")
+            from app.services.fetcher import fetch_all_data
 
-        # Always refresh data on startup to get real-time prices
-        print(f"Database has {count} records. Fetching latest data...")
-        from app.services.fetcher import fetch_all_data
-
-        fetch_all_data()
-
+            fetch_all_data()
+        else:
+            print(f"Database already has {count} records. Skipping fetch.")
     finally:
         db.close()
 
