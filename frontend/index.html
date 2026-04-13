@@ -687,16 +687,11 @@
                 <div class="panel">
                     <div class="panel-title">Compare Stocks</div>
                     <div class="compare-controls">
-                        <select class="compare-select" id="compare1">
-                            <option value="">Select Stock</option>
-                        </select>
-                        <span class="vs-text">vs</span>
-                        <select class="compare-select" id="compare2">
-                            <option value="">Select Stock</option>
-                        </select>
-                        <button class="compare-btn" id="compareBtn">Compare</button>
+                        <button class="compare-btn" onclick="quickCompare('TCS.NS', 'INFY.NS')">TCS vs INFY</button>
+                        <button class="compare-btn" onclick="quickCompare('TCS.NS', 'RELIANCE.NS')">TCS vs RELIANCE</button>
+                        <button class="compare-btn" onclick="quickCompare('INFY.NS', 'RELIANCE.NS')">INFY vs RELIANCE</button>
                     </div>
-                    <div class="compare-results" id="compareResults">
+                    <div class="compare-results show" id="compareResults">
                         <div class="compare-stock">
                             <div class="compare-stock-header">
                                 <span class="compare-stock-name" id="stock1Name"></span>
@@ -890,23 +885,13 @@
             document.getElementById('compare2').innerHTML = '<option value="">Select</option>' + options;
         }
 
-        async function loadCompare() {
-            const s1 = document.getElementById('compare1').value;
-            const s2 = document.getElementById('compare2').value;
-            console.log('Comparing:', s1, s2);
-            if (!s1 || !s2) { showToast('Select both stocks'); return; }
+        async function quickCompare(s1, s2) {
             try {
-                const url = API + '/compare?symbol1=' + s1 + '&symbol2=' + s2 + '&days=30';
-                console.log('URL:', url);
-                const res = await fetch(url);
+                const res = await fetch(API + '/compare?symbol1=' + s1 + '&symbol2=' + s2 + '&days=30');
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
-                console.log('Compare data:', data);
                 renderCompare(data);
-            } catch (e) { 
-                console.error('Compare error:', e);
-                showToast('Compare failed: ' + e.message); 
-            }
+            } catch (e) { showToast('Compare failed'); }
         }
 
         function renderCompare(d) {
