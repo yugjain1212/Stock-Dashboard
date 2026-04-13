@@ -687,46 +687,18 @@
                 <div class="panel">
                     <div class="panel-title">Compare Stocks</div>
                     <div class="compare-controls">
-                        <button class="compare-btn" onclick="quickCompare('TCS.NS', 'INFY.NS')">TCS vs INFY</button>
-                        <button class="compare-btn" onclick="quickCompare('TCS.NS', 'RELIANCE.NS')">TCS vs RELIANCE</button>
-                        <button class="compare-btn" onclick="quickCompare('INFY.NS', 'RELIANCE.NS')">INFY vs RELIANCE</button>
+                        <button class="compare-btn" onclick="doCompare('TCS.NS', 'INFY.NS')">TCS vs INFY</button>
+                        <button class="compare-btn" onclick="doCompare('TCS.NS', 'RELIANCE.NS')">TCS vs RELIANCE</button>
+                        <button class="compare-btn" onclick="doCompare('INFY.NS', 'RELIANCE.NS')">INFY vs RELIANCE</button>
                     </div>
-                    <div class="compare-results" id="compareResults">
-                        
-                        <div class="compare-stock">
-                            <div class="compare-stock-header">
-                                <span class="compare-stock-name" id="stock1Name">--</span>
-                                <svg class="trophy hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2l3 7h8l-6.5 5 2.5 8L12 18l-7 4 2.5-8L1 9h8l3-7z"/>
-                                </svg>
-                            </div>
-                            <div class="compare-stats-grid">
-                                <div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock1Return">--</div></div>
-                                <div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock1Avg">--</div></div>
-                                <div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock1Max">--</div></div>
-                                <div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock1Vol">--</div></div>
-                            </div>
+                    
+                    <div id="compareResult" style="background: var(--bg-secondary); padding: 20px; border-radius: 10px; margin-top: 15px; display: none;">
+                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">📊 Comparison Results</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div id="stock1Box"></div>
+                            <div id="stock2Box"></div>
                         </div>
-                        
-                        <div class="compare-stock">
-                            <div class="compare-stock-header">
-                                <span class="compare-stock-name" id="stock2Name">--</span>
-                                <svg class="trophy hidden" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2l3 7h8l-6.5 5 2.5 8L12 18l-7 4 2.5-8L1 9h8l3-7z"/>
-                                </svg>
-                            </div>
-                            <div class="compare-stats-grid">
-                                <div><div class="compare-stat-label">Return</div><div class="compare-stat-value" id="stock2Return">--</div></div>
-                                <div><div class="compare-stat-label">Avg</div><div class="compare-stat-value" id="stock2Avg">--</div></div>
-                                <div><div class="compare-stat-label">Max</div><div class="compare-stat-value" id="stock2Max">--</div></div>
-                                <div><div class="compare-stat-label">Vol</div><div class="compare-stat-value" id="stock2Vol">--</div></div>
-                            </div>
-                        </div>
-                        
-                        <div class="correlation-box">
-                            <div class="correlation-label">Correlation</div>
-                            <div class="correlation-value" id="corrValue">--</div>
-                        </div>
+                        <div id="corrBox" style="text-align: center; padding: 15px; margin-top: 15px; background: var(--white); border-radius: 8px;"></div>
                     </div>
                 </div>
 
@@ -888,36 +860,23 @@
             document.getElementById('compare2').innerHTML = '<option value="">Select</option>' + options;
         }
 
-        async function quickCompare(s1, s2) {
+        async function doCompare(s1, s2) {
             try {
                 const res = await fetch(API + '/compare?symbol1=' + s1 + '&symbol2=' + s2 + '&days=30');
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-                renderCompare(data);
-            } catch (e) { showToast('Compare failed'); }
-        }
-
-        function renderCompare(d) {
-            document.getElementById('compareResults').classList.add('show');
-            const s1 = d.symbol1_stats, s2 = d.symbol2_stats, better = d.better_performer;
-            
-            document.getElementById('stock1Name').textContent = s1.symbol.replace('.NS', '');
-            document.getElementById('stock1Return').textContent = fmtRet(s1.total_return_pct / 100);
-            document.getElementById('stock1Return').style.color = s1.total_return_pct >= 0 ? '#10b981' : '#ef4444';
-            document.getElementById('stock1Avg').textContent = fmtPrice(s1.avg_close);
-            document.getElementById('stock1Max').textContent = fmtPrice(s1.max_close);
-            document.getElementById('stock1Vol').textContent = fmtNum(s1.avg_volatility, 4);
-            document.querySelector('#compareResults .compare-stock:first-child .trophy').classList.toggle('hidden', s1.symbol !== better);
-
-            document.getElementById('stock2Name').textContent = s2.symbol.replace('.NS', '');
-            document.getElementById('stock2Return').textContent = fmtRet(s2.total_return_pct / 100);
-            document.getElementById('stock2Return').style.color = s2.total_return_pct >= 0 ? '#10b981' : '#ef4444';
-            document.getElementById('stock2Avg').textContent = fmtPrice(s2.avg_close);
-            document.getElementById('stock2Max').textContent = fmtPrice(s2.max_close);
-            document.getElementById('stock2Vol').textContent = fmtNum(s2.avg_volatility, 4);
-            document.querySelector('#compareResults .compare-stock:last-child .trophy').classList.toggle('hidden', s2.symbol !== better);
-
-            document.getElementById('corrValue').textContent = fmtNum(d.correlation, 4);
+                const d = await res.json();
+                const box = document.getElementById('compareResult');
+                box.style.display = 'block';
+                
+                const s1Data = d.symbol1_stats;
+                const s2Data = d.symbol2_stats;
+                const better = d.better_performer;
+                
+                document.getElementById('stock1Box').innerHTML = '<h4 style="color: var(--accent-primary); margin-bottom: 10px;">' + s1.replace('.NS', '') + (s1 === better ? ' 🏆 WINNER' : '') + '</h4><p>Return: <strong style="color:' + (s1Data.total_return_pct >= 0 ? '#10b981' : '#ef4444') + ';">' + fmtRet(s1Data.total_return_pct/100) + '</strong></p><p>Avg Price: ₹' + s1Data.avg_close.toFixed(2) + '</p><p>Max: ₹' + s1Data.max_close.toFixed(2) + '</p><p>Volatility: ' + s1Data.avg_volatility.toFixed(4) + '</p>';
+                
+                document.getElementById('stock2Box').innerHTML = '<h4 style="color: var(--accent-primary); margin-bottom: 10px;">' + s2.replace('.NS', '') + (s2 === better ? ' 🏆 WINNER' : '') + '</h4><p>Return: <strong style="color:' + (s2Data.total_return_pct >= 0 ? '#10b981' : '#ef4444') + ';">' + fmtRet(s2Data.total_return_pct/100) + '</strong></p><p>Avg Price: ₹' + s2Data.avg_close.toFixed(2) + '</p><p>Max: ₹' + s2Data.max_close.toFixed(2) + '</p><p>Volatility: ' + s2Data.avg_volatility.toFixed(4) + '</p>';
+                
+                document.getElementById('corrBox').innerHTML = '<p>Correlation: <strong>' + d.correlation.toFixed(4) + '</strong> (' + (Math.abs(d.correlation) > 0.7 ? 'Highly Correlated' : 'Weak Correlation') + ')</p>';
+            } catch (e) { showToast('Error: ' + e.message); }
         }
 
         async function renderGainers() {
