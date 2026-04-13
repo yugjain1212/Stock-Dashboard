@@ -893,12 +893,20 @@
         async function loadCompare() {
             const s1 = document.getElementById('compare1').value;
             const s2 = document.getElementById('compare2').value;
+            console.log('Comparing:', s1, s2);
             if (!s1 || !s2) { showToast('Select both stocks'); return; }
             try {
-                const res = await fetch(API + '/compare?symbol1=' + s1 + '&symbol2=' + s2 + '&days=30');
+                const url = API + '/compare?symbol1=' + s1 + '&symbol2=' + s2 + '&days=30';
+                console.log('URL:', url);
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
+                console.log('Compare data:', data);
                 renderCompare(data);
-            } catch (e) { showToast('Compare failed'); }
+            } catch (e) { 
+                console.error('Compare error:', e);
+                showToast('Compare failed: ' + e.message); 
+            }
         }
 
         function renderCompare(d) {
